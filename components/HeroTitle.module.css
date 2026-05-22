@@ -1,0 +1,29 @@
+.title {
+  font-family: var(--display);
+  font-weight: 300;
+  font-size: var(--t-display-xl);
+  line-height: 1.02;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.accent {
+  display: inline-block;
+  position: relative;
+  transition: opacity var(--dur-transition) var(--ease);
+}
+
+.accent::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0.04em;
+  height: 1px;
+  background: var(--neon);
+  opacity: 0.25;
+  filter: blur(2px);
+}

@@ -1,0 +1,61 @@
+.matrix {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 240px 1fr 80px;
+  gap: 20px;
+  align-items: center;
+  padding: 16px 0;
+  border-bottom: 1px dashed var(--line);
+}
+
+.label {
+  font-family: var(--mono);
+  font-size: var(--t-meta-l);
+  letter-spacing: 0.04em;
+  color: var(--ink);
+}
+
+.bar {
+  height: 4px;
+  background: var(--line);
+  border-radius: 2px;
+  overflow: hidden;
+  position: relative;
+}
+
+.fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--neon), var(--neon-2));
+  border-radius: 2px;
+  animation: grow 1.2s var(--ease);
+}
+
+@keyframes grow {
+  from { width: 0 !important; }
+}
+
+.score {
+  font-family: var(--mono);
+  font-size: var(--t-meta-l);
+  color: var(--ink);
+  text-align: right;
+}
+
+.score :global(.serif-italic) {
+  font-size: 20px;
+  background: linear-gradient(90deg, var(--neon), var(--neon-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.den { color: var(--ink-faint); }
+
+@media (max-width: 720px) {
+  .row { grid-template-columns: 1fr; gap: 8px; }
+}

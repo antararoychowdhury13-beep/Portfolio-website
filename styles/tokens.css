@@ -1,0 +1,54 @@
+:root {
+  /* Colors */
+  --bg: #05060a;
+  --bg-soft: #0a0d14;
+  --ink: #e8ecf3;
+  --ink-dim: #8089a0;
+  --ink-faint: #3a4156;
+  --neon: #7dffce;
+  --neon-2: #00d4ff;
+  --plasma: #ff4d8b;
+  --gold: #f5c66b;
+  --line: rgba(125, 255, 206, 0.12);
+  --line-strong: rgba(125, 255, 206, 0.28);
+
+  /* Typography */
+  --display: "Fraunces", Georgia, serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* Type scale */
+  --t-display-xl: clamp(48px, 7vw, 104px);
+  --t-display-l: clamp(40px, 6vw, 80px);
+  --t-display-m: clamp(36px, 5vw, 64px);
+  --t-display-s-d: 36px;
+  --t-display-s-m: 28px;
+  --t-display-xs: 28px;
+  --t-body-l: 20px;
+  --t-body-m: 14px;
+  --t-body-s: 13px;
+  --t-meta-l: 12px;
+  --t-meta-m: 11px;
+  --t-meta-s: 10px;
+  --t-meta-xs: 9px;
+
+  /* Motion */
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-ui: 0.4s;
+  --dur-transition: 0.6s;
+  --dur-cursor: 0.12s;
+
+  /* Layout */
+  --radius-card: 4px;
+  --radius-surface: 6px;
+  --radius-pill: 100px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

@@ -1,0 +1,47 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 28px;
+  background: rgba(10, 13, 20, 0.55);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.tag {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--mono);
+  font-size: var(--t-meta-s);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding-bottom: 12px;
+  border-bottom: 1px dashed var(--line);
+}
+
+.kind { color: var(--neon); }
+.num { color: var(--ink-faint); }
+
+.caption {
+  font-family: var(--display);
+  font-weight: 300;
+  font-size: var(--t-body-l);
+  line-height: 1.4;
+  color: var(--ink);
+}
+
+.visual {
+  display: grid;
+  place-items: center;
+  min-height: 200px;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-card);
+  background:
+    radial-gradient(circle at 20% 20%, rgba(125, 255, 206, 0.06), transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(0, 212, 255, 0.05), transparent 50%);
+  padding: 24px;
+  color: var(--ink-dim);
+}

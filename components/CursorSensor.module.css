@@ -1,0 +1,46 @@
+.core {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--neon);
+  box-shadow: 0 0 12px var(--neon), 0 0 24px rgba(125, 255, 206, 0.4);
+  pointer-events: none;
+  z-index: 9999;
+  will-change: transform;
+}
+
+.aura {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--line-strong);
+  background: radial-gradient(circle, rgba(125, 255, 206, 0.06), transparent 70%);
+  pointer-events: none;
+  z-index: 9998;
+  transition:
+    width var(--dur-ui) var(--ease),
+    height var(--dur-ui) var(--ease),
+    background var(--dur-ui) var(--ease),
+    border-color var(--dur-ui) var(--ease);
+  will-change: transform;
+}
+
+.aura.active {
+  width: 90px;
+  height: 90px;
+  border-color: var(--neon);
+  background: radial-gradient(circle, rgba(125, 255, 206, 0.14), transparent 70%);
+}
+
+@media (hover: none), (pointer: coarse) {
+  .core,
+  .aura {
+    display: none;
+  }
+}

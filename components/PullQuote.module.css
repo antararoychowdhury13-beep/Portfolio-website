@@ -1,0 +1,31 @@
+.q {
+  position: relative;
+  max-width: 880px;
+  margin: 120px auto;
+  padding: 40px 60px;
+  font-family: var(--display);
+  font-style: italic;
+  font-weight: 300;
+  font-size: clamp(24px, 3vw, 36px);
+  line-height: 1.35;
+  color: var(--ink);
+  text-align: center;
+}
+
+.mark {
+  position: absolute;
+  font-family: var(--display);
+  font-style: italic;
+  font-size: 120px;
+  line-height: 1;
+  color: var(--neon);
+  opacity: 0.4;
+}
+
+.mark:not(.markRight) { top: -20px; left: 0; }
+.markRight { bottom: -60px; right: 0; }
+
+@media (max-width: 720px) {
+  .q { padding: 20px 24px; margin: 80px auto; }
+  .mark { font-size: 60px; }
+}

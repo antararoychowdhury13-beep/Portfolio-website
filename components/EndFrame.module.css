@@ -1,0 +1,60 @@
+.end {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 48px;
+  padding-top: 60px;
+  border-top: 1px solid var(--line);
+  margin-top: 120px;
+}
+
+.col { display: flex; flex-direction: column; gap: 16px; }
+
+.label {
+  font-family: var(--mono);
+  font-size: var(--t-meta-s);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--neon);
+}
+
+.proves {
+  font-family: var(--display);
+  font-weight: 300;
+  font-size: 18px;
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+.next { display: flex; flex-direction: column; gap: 8px; }
+.nextTag {
+  font-family: var(--mono);
+  font-size: var(--t-meta-s);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.nextTitle {
+  font-family: var(--display);
+  font-weight: 300;
+  font-size: 20px;
+  line-height: 1.3;
+  color: var(--ink);
+}
+.arrow { color: var(--neon); font-style: normal; }
+
+.cta {
+  font-family: var(--mono);
+  font-size: var(--t-meta-l);
+  letter-spacing: 0.08em;
+  padding: 14px 20px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--neon);
+  color: var(--neon);
+  text-align: center;
+  transition: all var(--dur-ui) var(--ease);
+}
+.cta:hover { background: var(--neon); color: var(--bg); }
+
+@media (max-width: 720px) {
+  .end { grid-template-columns: 1fr; gap: 32px; }
+}

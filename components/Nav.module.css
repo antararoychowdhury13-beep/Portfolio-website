@@ -1,0 +1,70 @@
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(5, 6, 10, 0.6);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px dashed var(--line);
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 0;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--mono);
+  font-size: var(--t-meta-l);
+  letter-spacing: 0.04em;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--neon);
+  box-shadow: 0 0 8px var(--neon);
+  animation: brandPulse 2s var(--ease) infinite;
+}
+
+@keyframes brandPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.brandText {
+  color: var(--ink);
+  font-size: 14px;
+}
+
+.brandText :global(.serif-italic) {
+  font-size: 16px;
+}
+
+.links {
+  display: flex;
+  gap: 32px;
+  align-items: center;
+}
+
+.link, .linkAccent {
+  font-family: var(--mono);
+  font-size: var(--t-meta-l);
+  letter-spacing: 0.06em;
+  color: var(--ink-dim);
+  transition: color var(--dur-ui) var(--ease);
+}
+
+.link:hover { color: var(--ink); }
+.linkAccent { color: var(--neon); }
+.linkAccent:hover { color: var(--neon-2); }
+
+@media (max-width: 720px) {
+  .links { gap: 16px; }
+  .link, .linkAccent { font-size: var(--t-meta-s); }
+}
