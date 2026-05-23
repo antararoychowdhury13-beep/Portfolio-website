@@ -26,6 +26,19 @@ export interface OverlayContent {
   secondary: string;
 }
 
+export type NudgeKind = "dwell" | "footer" | "return" | "";
+
+export interface NudgeState {
+  open: boolean;
+  id: string;
+  kind: NudgeKind;
+  tag: string;
+  msg: string;
+  slug?: CaseSlug;
+}
+
+const MAX_NUDGES_PER_SESSION = 3;
+
 export interface AgentSnapshot {
   state: AgentState;
   log: LogEntry[];
@@ -40,6 +53,8 @@ export interface AgentSnapshot {
   intent: IntentToken | null;
   intentTaken: boolean;
   referrerHint: PersonaId | null;
+  nudge: NudgeState;
+  hasActed: boolean;
 }
 
 type Listener = (s: AgentSnapshot) => void;
@@ -62,6 +77,10 @@ class Agent {
   private intent: IntentToken | null = null;
   private intentTaken = false;
   private referrerHint: PersonaId | null = null;
+  private nudge: NudgeState = { open: false, id: "", kind: "", tag: "", msg: "" };
+  private hasActed = false;
+  private firedNudges = new Set<string>();
+  private nudgeCount = 0;
   private listeners = new Set<Listener>();
   private start = Date.now();
   private running = false;
@@ -91,6 +110,8 @@ class Agent {
       intent: this.intent,
       intentTaken: this.intentTaken,
       referrerHint: this.referrerHint,
+      nudge: { ...this.nudge },
+      hasActed: this.hasActed,
     };
   }
 
@@ -157,6 +178,7 @@ class Agent {
     this.intentTaken = true;
     const persona = intentToPersona(intent, this.referrerHint);
     saveIntent({ intent, persona, at: Date.now() });
+    this.markActed();
     this.push("observe", `intent · visitor tapped "${intent}".`);
     this.emit();
     await this.runPersona(persona, { fromReferrer: false });
@@ -168,8 +190,51 @@ class Agent {
     this.push("observe", "visitor dismissed overlay — standing back.");
   }
 
+  /** The visitor has done something meaningful — used to gate "before you go". */
+  markActed() {
+    if (this.hasActed) return;
+    this.hasActed = true;
+    this.emit();
+  }
+
+  /**
+   * Narrator → request a nudge. Centralizes the silence rules: one nudge at a
+   * time, each trigger once per session, and a hard per-session cap.
+   */
+  showNudge(args: {
+    id: string;
+    kind: NudgeKind;
+    tag: string;
+    msg: string;
+    slug?: CaseSlug;
+  }): boolean {
+    if (this.nudge.open) return false;
+    if (this.firedNudges.has(args.id)) return false;
+    if (this.nudgeCount >= MAX_NUDGES_PER_SESSION) return false;
+    this.nudge = {
+      open: true,
+      id: args.id,
+      kind: args.kind,
+      tag: args.tag,
+      msg: args.msg,
+      slug: args.slug,
+    };
+    this.firedNudges.add(args.id);
+    this.nudgeCount += 1;
+    this.push("observe", `narrator · ${args.kind} nudge — "${args.tag}".`);
+    this.emit();
+    return true;
+  }
+
+  dismissNudge() {
+    if (!this.nudge.open) return;
+    this.nudge = { open: false, id: "", kind: "", tag: "", msg: "" };
+    this.emit();
+  }
+
   openCalendar() {
     this.calendarOpen = true;
+    this.markActed();
     this.push("act", "tool_call · open_calendar()");
     this.emit();
   }
@@ -190,6 +255,7 @@ class Agent {
       if (opts.fromReferrer) {
         this.push("observe", `inbound referrer matched — ${p.contextLabel}.`);
       } else {
+        this.markActed();
         this.push("observe", `explicit persona signal — ${p.contextLabel}.`);
       }
       await this.wait(700);

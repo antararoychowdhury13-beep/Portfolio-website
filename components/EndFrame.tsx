@@ -11,7 +11,7 @@ interface Props {
 export default function EndFrame({ proves, nextSlug }: Props) {
   const next = nextSlug ? CASES[nextSlug] : null;
   return (
-    <section className={styles.end}>
+    <section className={styles.end} data-narrate="endframe">
       <div className={styles.col}>
         <div className={styles.label}>// what this case proves</div>
         <p className={styles.proves}>{proves}</p>

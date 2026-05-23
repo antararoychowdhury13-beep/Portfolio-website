@@ -109,6 +109,7 @@ export default function ChitraChatSurface() {
   const handleSend = useCallback(async () => {
     const v = input.trim();
     if (!v || pending) return;
+    getAgent().markActed();
     setInput("");
     setPending(true);
     counter.current += 1;
