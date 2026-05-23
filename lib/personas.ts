@@ -8,6 +8,7 @@ export type PersonaId =
 export type CaseSlug =
   | "dfd-divya"
   | "ibm-power-hmc"
+  | "siemens-workforce-transformation"
   | "bt-business-billing"
   | "intent-first-ux"
   | "gravity-spatial-ui"
@@ -35,6 +36,7 @@ export const PERSONAS: Record<PersonaId, Persona> = {
       "gravity-spatial-ui",
       "panchang-engine",
       "ibm-power-hmc",
+      "siemens-workforce-transformation",
       "bt-business-billing",
     ],
     surfaceCount: 3,
@@ -49,6 +51,7 @@ export const PERSONAS: Record<PersonaId, Persona> = {
     heroVerb: "scalable",
     surfaceOrder: [
       "ibm-power-hmc",
+      "siemens-workforce-transformation",
       "bt-business-billing",
       "intent-first-ux",
       "gravity-spatial-ui",
@@ -71,6 +74,7 @@ export const PERSONAS: Record<PersonaId, Persona> = {
       "panchang-engine",
       "intent-first-ux",
       "ibm-power-hmc",
+      "siemens-workforce-transformation",
       "bt-business-billing",
     ],
     surfaceCount: 3,
@@ -87,6 +91,7 @@ export const PERSONAS: Record<PersonaId, Persona> = {
       "intent-first-ux",
       "gravity-spatial-ui",
       "dfd-divya",
+      "siemens-workforce-transformation",
       "ibm-power-hmc",
       "panchang-engine",
       "bt-business-billing",
@@ -104,6 +109,7 @@ export const PERSONAS: Record<PersonaId, Persona> = {
     surfaceOrder: [
       "dfd-divya",
       "ibm-power-hmc",
+      "siemens-workforce-transformation",
       "bt-business-billing",
       "intent-first-ux",
       "gravity-spatial-ui",

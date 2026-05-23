@@ -68,7 +68,7 @@ const TOOLS: Anthropic.Tool[] = [
           type: "array",
           items: { type: "string" },
           description:
-            "Case slugs: dfd-divya, ibm-power-hmc, bt-business-billing, intent-first-ux, gravity-spatial-ui, panchang-engine",
+            "Case slugs: dfd-divya, ibm-power-hmc, siemens-workforce-transformation, bt-business-billing, intent-first-ux, gravity-spatial-ui, panchang-engine",
         },
       },
       required: ["role_title", "verdict", "score", "strengths", "relevant_cases"],

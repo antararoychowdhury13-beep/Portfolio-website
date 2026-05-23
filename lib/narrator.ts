@@ -49,6 +49,12 @@ export const CASE_TLDR: Record<
     strategic:
       "Enterprise at platform scale: simplifying a deep, mission-critical system without breaking the operators who depend on it daily.",
   },
+  "siemens-workforce-transformation": {
+    short:
+      "Siemens' #NextWork tool — eight stakeholder archetypes, 300k+ employees, scaled to 120+ workstreams in 30+ countries.",
+    strategic:
+      "Service design at enterprise scale: turning a methodology into operational reality across personas, systems, and regulators.",
+  },
   "bt-business-billing": {
     short:
       "A redesign of BT's SME business billing — a multi-decade legacy system — that cut the most common support tickets.",

@@ -334,6 +334,84 @@ export const CASE_CONTENT: Record<CaseSlug, CaseContent> = {
     ],
     proves:
       "I can lead a multi-year enterprise platform redesign with measurable, retraining-free impact at director scale.",
+    next: "siemens-workforce-transformation",
+  },
+
+  "siemens-workforce-transformation": {
+    intro:
+      "I led the design of the digital tool that operationalized Siemens' #NextWork methodology — a five-step framework for translating business strategy into named, individualized development paths. Eleven months. Eight stakeholder archetypes. A 300,000-person, 190-country organization. The distinctive move was treating this not as an HR analytics product but as a service blueprint problem.",
+    stats: [
+      { value: "300k+", label: "employees served · 190 countries" },
+      { value: "120+", label: "workstreams · 30+ countries scaled" },
+      { value: "72%", label: "reskilled in place · Bad Neustadt" },
+      { value: "8", label: "user archetypes · one tool" },
+    ],
+    layer2: [
+      {
+        num: "01",
+        kind: "BET",
+        caption:
+          "If we design the tool as a connected service that produces a named output for a named person — not as an HR dashboard — workforce transformation stops being a slide deck and becomes operational reality.",
+        visualLabel: "the operational bet",
+      },
+      {
+        num: "02",
+        kind: "ALT",
+        caption:
+          "Three alternatives rejected: a redesigned HR dashboard, a consulting deliverable that would die in PowerPoint, and a federation of point tools per persona. Each preserved the gap between strategy and execution.",
+        visualLabel: "three rejected framings",
+      },
+      {
+        num: "03",
+        kind: "CONSTRAINT",
+        caption:
+          "Eight archetypes, 22 ecosystem connection points, GDPR, regional labor law across 30+ countries, and a German works council that arrived in Month 7. Every design decision had to survive all of them.",
+        visualLabel: "the constraint stack",
+      },
+      {
+        num: "04",
+        kind: "SYSTEM",
+        caption:
+          "Information architecture anchored on the #NextWork methodology, not on features. Same data, four persona lenses. The handoff chain was the product — one role's output became the next role's input.",
+        visualLabel: "methodology-as-IA",
+      },
+      {
+        num: "05",
+        kind: "ARTIFACT",
+        caption:
+          "Persona Lenses — a single dataset rendered four different ways for executives, HR business partners, IT managers, and employees. Each persona reads the same skill state in their own vocabulary, with their own next action.",
+        visualLabel: "persona lenses · same data",
+      },
+      {
+        num: "06",
+        kind: "RESULT",
+        caption:
+          "Scaled to 120+ workstreams across 30+ countries. At Bad Neustadt, 72% of 550 employees were re-skilled or up-skilled in place instead of restructured. A BU CEO called it the best HR project in 30 years.",
+        visualLabel: "reskilled in place",
+        visualValue: "72%",
+      },
+    ],
+    quote:
+      "We knew that we had to do something. We just didn't know what. The tool's job wasn't to answer the question — it was to let every role in the org answer it together, in their own language, on the same evidence.",
+    depth: [
+      {
+        heading: "Why we designed a service, not a dashboard",
+        body:
+          "The temptation was to build an HR analytics dashboard — every interview, every shadowed planning session, every line of telemetry pointed away from it. The real failure wasn't analysis; it was handoff. Strategy left the executive's room and never arrived in the HRBP's spreadsheet. The HRBP's plan left her desk and never reached the employee's career page. We designed for the handoffs first, and the screens fell out of them. The product became a connected workflow that produced a named output for a named person — that single framing decision is what made the methodology operable at scale.",
+      },
+      {
+        heading: "The works council reframe — Month 7",
+        body:
+          "I initially mis-positioned the German works council as a compliance checkbox to be cleared late. That was wrong. When they engaged in Month 7, their objections didn't slow us down — they reshaped the entire data-visibility model into something more trustworthy. Individual-level skill data became opt-in by employee. Aggregations defaulted to a minimum cohort size. The works council went from blocker to co-designer. The lesson I carry forward: every regulatory stakeholder is a designer of the trust surface, whether the team treats them that way or not.",
+      },
+      {
+        heading: "Information architecture as the most contested decision",
+        body:
+          "I led the team to structure the IA on the methodology spine — Sense the trend, Translate to skill, Plan the path, Execute, Measure — rather than on features. This was contested for weeks. Feature-led IA is easier to ship and easier to demo. Methodology-led IA is the only one that lets eight different archetypes hold the same mental model. The decision held because the persona-lens system made it cheap: same backbone, different surface per role. Without the lenses, methodology-led IA would have collapsed under its own ambition.",
+      },
+    ],
+    proves:
+      "I can lead a service-design problem masquerading as a product UI — across eight archetypes, dozens of systems, and a regulatory landscape — and ship something the business actually operates.",
     next: "bt-business-billing",
   },
 

@@ -31,6 +31,16 @@ export const CASES: Record<CaseSlug, CaseSummary> = {
       "Redesigned the Hardware Management Console serving 30k+ enterprise admins. Cut task time on the top five flows by 41% without retraining a single operator.",
     pills: ["Design systems", "Platform UX", "z/OS"],
   },
+  "siemens-workforce-transformation": {
+    slug: "siemens-workforce-transformation",
+    tag: "Enterprise · service design",
+    year: "2020",
+    title: "Siemens — workforce transformation, made operable",
+    titleAccent: "operable",
+    description:
+      "Led the design of the digital tool that turned Siemens' #NextWork methodology into a working system across eight stakeholder archetypes and 300k+ employees. Scaled to 120+ workstreams in 30+ countries; 72% of one site reskilled in place instead of restructured.",
+    pills: ["Service design", "Multi-persona UX", "HR tech", "Enterprise"],
+  },
   "bt-business-billing": {
     slug: "bt-business-billing",
     tag: "Consumer · billing",
@@ -76,6 +86,7 @@ export const CASES: Record<CaseSlug, CaseSummary> = {
 export const ALL_SLUGS: CaseSlug[] = [
   "dfd-divya",
   "ibm-power-hmc",
+  "siemens-workforce-transformation",
   "bt-business-billing",
   "intent-first-ux",
   "gravity-spatial-ui",
@@ -85,7 +96,16 @@ export const ALL_SLUGS: CaseSlug[] = [
 export const FILTER_MAP: Record<string, CaseSlug[]> = {
   Everything: ALL_SLUGS,
   "AI-native": ["dfd-divya", "intent-first-ux", "panchang-engine"],
-  Enterprise: ["ibm-power-hmc", "bt-business-billing"],
+  Enterprise: [
+    "ibm-power-hmc",
+    "siemens-workforce-transformation",
+    "bt-business-billing",
+  ],
   Consumer: ["bt-business-billing", "panchang-engine"],
-  Leadership: ["ibm-power-hmc", "intent-first-ux", "gravity-spatial-ui"],
+  Leadership: [
+    "ibm-power-hmc",
+    "siemens-workforce-transformation",
+    "intent-first-ux",
+    "gravity-spatial-ui",
+  ],
 };
