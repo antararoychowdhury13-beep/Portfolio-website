@@ -9,7 +9,7 @@ import StatStrip from "@/components/StatStrip";
 import SectionHeader from "@/components/SectionHeader";
 import FilterStrip from "@/components/FilterStrip";
 import ProjectCard from "@/components/ProjectCard";
-import DivyaChatSurface from "@/components/DivyaChatSurface";
+import ChitraChatSurface from "@/components/ChitraChatSurface";
 import FrameworkCard from "@/components/FrameworkCard";
 import CapabilityMatrix from "@/components/CapabilityMatrix";
 import FooterCTA from "@/components/FooterCTA";
@@ -66,7 +66,7 @@ export default function HomePage() {
                 </div>
               </div>
               <div className={styles.heroRight}>
-                <DivyaChatSurface />
+                <ChitraChatSurface />
               </div>
             </div>
           </div>

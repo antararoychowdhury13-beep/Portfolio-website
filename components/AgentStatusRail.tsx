@@ -33,7 +33,7 @@ export default function AgentStatusRail() {
   return (
     <aside
       className={styles.rail}
-      aria-label="Agent status — Divya"
+      aria-label="Agent status — Chitra"
       role="status"
       aria-live="polite"
     >
@@ -41,7 +41,7 @@ export default function AgentStatusRail() {
         <div className={`${styles.orb} ${stateInfo.cls}`} aria-hidden />
         <div className={styles.title}>
           <div className={styles.name}>
-            <span className="serif-italic">Divya</span>
+            <span className="serif-italic">Chitra</span>
           </div>
           <div className={styles.meta}>agent · v0.1</div>
         </div>
