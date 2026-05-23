@@ -1,6 +1,12 @@
 "use client";
 
 import { PERSONAS, type PersonaId, type CaseSlug } from "./personas";
+import {
+  intentToPersona,
+  loadIntent,
+  saveIntent,
+  type IntentToken,
+} from "./intent";
 
 export type AgentState = "idle" | "observing" | "deciding" | "acting";
 export type LogKind = "init" | "observe" | "reason" | "act" | "standby";
@@ -31,6 +37,9 @@ export interface AgentSnapshot {
   overlay: OverlayContent;
   calendarOpen: boolean;
   dismissedThisSession: boolean;
+  intent: IntentToken | null;
+  intentTaken: boolean;
+  referrerHint: PersonaId | null;
 }
 
 type Listener = (s: AgentSnapshot) => void;
@@ -50,6 +59,9 @@ class Agent {
   };
   private calendarOpen = false;
   private dismissedThisSession = false;
+  private intent: IntentToken | null = null;
+  private intentTaken = false;
+  private referrerHint: PersonaId | null = null;
   private listeners = new Set<Listener>();
   private start = Date.now();
   private running = false;
@@ -76,6 +88,9 @@ class Agent {
       overlay: { ...this.overlay },
       calendarOpen: this.calendarOpen,
       dismissedThisSession: this.dismissedThisSession,
+      intent: this.intent,
+      intentTaken: this.intentTaken,
+      referrerHint: this.referrerHint,
     };
   }
 
@@ -109,6 +124,42 @@ class Agent {
     if (this.log.length === 0) {
       this.push("init", "agent online — observing the surface.");
     }
+    // Rehydrate intent from the same session so returners don't see
+    // the question twice and the morph stays applied.
+    if (!this.intentTaken) {
+      const stored = loadIntent();
+      if (stored) {
+        this.intent = stored.intent;
+        this.intentTaken = true;
+        if (stored.persona !== "unknown") {
+          this.persona = stored.persona;
+          this.surfacedOrder = [...PERSONAS[stored.persona].surfaceOrder];
+          this.surfacedSet = new Set(
+            PERSONAS[stored.persona].surfaceOrder.slice(
+              0,
+              PERSONAS[stored.persona].surfaceCount,
+            ),
+          );
+        }
+        this.emit();
+      }
+    }
+  }
+
+  setReferrerHint(persona: PersonaId) {
+    if (persona === "unknown") return;
+    this.referrerHint = persona;
+    this.push("observe", `referrer hint — ${PERSONAS[persona].contextLabel}.`);
+  }
+
+  async setIntent(intent: IntentToken) {
+    this.intent = intent;
+    this.intentTaken = true;
+    const persona = intentToPersona(intent, this.referrerHint);
+    saveIntent({ intent, persona, at: Date.now() });
+    this.push("observe", `intent · visitor tapped "${intent}".`);
+    this.emit();
+    await this.runPersona(persona, { fromReferrer: false });
   }
 
   dismissOverlay() {
