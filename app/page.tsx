@@ -9,10 +9,12 @@ import StatStrip from "@/components/StatStrip";
 import SectionHeader from "@/components/SectionHeader";
 import FilterStrip from "@/components/FilterStrip";
 import ProjectCard from "@/components/ProjectCard";
-import DivyaChatSurface from "@/components/DivyaChatSurface";
+import ChitraChatSurface from "@/components/ChitraChatSurface";
 import FrameworkCard from "@/components/FrameworkCard";
 import CapabilityMatrix from "@/components/CapabilityMatrix";
 import FooterCTA from "@/components/FooterCTA";
+import IntentMoment from "@/components/IntentMoment";
+import WhyAmISeeingThis from "@/components/WhyAmISeeingThis";
 import { ALL_SLUGS, FILTER_MAP } from "@/lib/cases";
 import { useAgent } from "@/lib/useAgent";
 import styles from "./page.module.css";
@@ -41,6 +43,13 @@ export default function HomePage() {
     <>
       <Nav />
       <main>
+        {!snap.intentTaken && (
+          <section className={styles.intent}>
+            <div className="container">
+              <IntentMoment />
+            </div>
+          </section>
+        )}
         <section className={styles.hero}>
           <div className="container">
             <div className={styles.heroGrid}>
@@ -53,10 +62,11 @@ export default function HomePage() {
                   <span>open to: Director · VP · AI Lead</span>
                   <span className={styles.dot} aria-hidden />
                   <span>London / remote</span>
+                  <WhyAmISeeingThis />
                 </div>
               </div>
               <div className={styles.heroRight}>
-                <DivyaChatSurface />
+                <ChitraChatSurface />
               </div>
             </div>
           </div>

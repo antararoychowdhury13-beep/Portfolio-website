@@ -5,7 +5,7 @@ import styles from "./FooterCTA.module.css";
 
 export default function FooterCTA() {
   return (
-    <footer className={styles.footer}>
+    <footer className={styles.footer} data-narrate="footer">
       <div className="container">
         <div className={styles.grid}>
           <div className={styles.left}>

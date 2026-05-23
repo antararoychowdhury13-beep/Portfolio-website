@@ -7,6 +7,8 @@ import AgentStatusRail from "@/components/AgentStatusRail";
 import AgentIntentOverlay from "@/components/AgentIntentOverlay";
 import CalendarModal from "@/components/CalendarModal";
 import PersonaBootstrap from "@/components/PersonaBootstrap";
+import ChitraNarrator from "@/components/ChitraNarrator";
+import ChitraNudge from "@/components/ChitraNudge";
 
 export const metadata: Metadata = {
   title: "Anupam Sarkar — Designing where AI is the material",
@@ -27,9 +29,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <GenerativeMesh />
         <GridOverlay />
         <PersonaBootstrap />
+        <ChitraNarrator />
         {children}
         <AgentStatusRail />
         <AgentIntentOverlay />
+        <ChitraNudge />
         <CalendarModal />
         <CursorSensor />
       </body>

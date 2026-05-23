@@ -16,7 +16,7 @@ export default function AgentIntentOverlay() {
         <div className={styles.orb} aria-hidden />
         <div className={styles.label}>
           <span className={styles.tag}>{snap.overlay.ctx}</span>
-          <span className={styles.kicker}>Divya · recommendation</span>
+          <span className={styles.kicker}>Chitra · recommendation</span>
         </div>
         <button
           className={styles.dismiss}
