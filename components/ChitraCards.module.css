@@ -1,0 +1,176 @@
+.card {
+  margin-top: 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-card);
+  background: rgba(5, 6, 10, 0.55);
+  padding: 14px 16px;
+  animation: cardin 0.45s var(--ease) both;
+}
+
+@keyframes cardin {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.cardKick {
+  font-family: var(--mono);
+  font-size: var(--t-meta-xs);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--neon);
+  margin-bottom: 10px;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.primary,
+.ghost {
+  font-family: var(--mono);
+  font-size: var(--t-meta-m);
+  letter-spacing: 0.04em;
+  padding: 7px 13px;
+  border-radius: var(--radius-pill);
+  transition: all var(--dur-ui) var(--ease);
+  cursor: pointer;
+}
+
+.primary {
+  background: var(--neon);
+  color: var(--bg);
+  border: 1px solid var(--neon);
+}
+.primary:hover { background: var(--neon-2); border-color: var(--neon-2); }
+
+.ghost {
+  background: transparent;
+  color: var(--ink-dim);
+  border: 1px solid var(--line-strong);
+  text-decoration: none;
+}
+.ghost:hover { color: var(--ink); border-color: var(--neon); }
+
+/* --- email --- */
+.emailSubject {
+  font-family: var(--mono);
+  font-size: var(--t-body-s);
+  color: var(--ink);
+  border-bottom: 1px dashed var(--line);
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+}
+.emailBody {
+  font-family: var(--display);
+  font-weight: 300;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--ink-dim);
+  white-space: pre-wrap;
+}
+
+/* --- jd fit --- */
+.verdict {
+  font-family: var(--display);
+  font-weight: 300;
+  font-size: 17px;
+  line-height: 1.4;
+  color: var(--ink);
+  margin-bottom: 12px;
+}
+.scoreRow { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.scoreTrack {
+  flex: 1;
+  height: 6px;
+  border-radius: 100px;
+  background: rgba(125, 255, 206, 0.12);
+  overflow: hidden;
+}
+.scoreFill {
+  height: 100%;
+  border-radius: 100px;
+  background: linear-gradient(90deg, var(--neon), var(--neon-2));
+  animation: fill 0.7s var(--ease) both;
+}
+@keyframes fill { from { width: 0 !important; } }
+.scoreNum {
+  font-family: var(--mono);
+  font-size: var(--t-body-s);
+  color: var(--neon);
+  min-width: 28px;
+  text-align: right;
+}
+.list { list-style: none; display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+.strength, .gap {
+  font-family: var(--mono);
+  font-size: var(--t-body-s);
+  line-height: 1.45;
+  color: var(--ink-dim);
+  display: flex;
+  gap: 8px;
+}
+.mark { color: var(--neon); }
+.markGap { color: var(--plasma); }
+
+.caseChips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.caseChip {
+  font-family: var(--mono);
+  font-size: var(--t-meta-s);
+  letter-spacing: 0.04em;
+  color: var(--ink-dim);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  padding: 5px 11px;
+  text-decoration: none;
+  transition: all var(--dur-ui) var(--ease);
+}
+.caseChip:hover { border-color: var(--neon); color: var(--neon); }
+
+/* --- ifu audit --- */
+.stages { display: flex; flex-direction: column; gap: 10px; }
+.stage {
+  display: grid;
+  grid-template-columns: 64px 1fr;
+  gap: 10px;
+  align-items: start;
+}
+.stageLabel {
+  font-family: var(--mono);
+  font-size: var(--t-meta-s);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--neon);
+  padding-top: 2px;
+}
+.stageBody {
+  font-family: var(--display);
+  font-weight: 300;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink-dim);
+}
+.summary {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--line);
+  font-family: var(--display);
+  font-style: italic;
+  font-size: 15px;
+  color: var(--ink);
+}
+
+/* --- book call --- */
+.bookLine {
+  font-family: var(--display);
+  font-weight: 300;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--ink-dim);
+}
+
+@media (max-width: 520px) {
+  .stage { grid-template-columns: 1fr; gap: 2px; }
+}

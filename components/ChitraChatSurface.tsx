@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useAgent } from "@/lib/useAgent";
 import { getAgent } from "@/lib/agent";
 import { CHITRA_OPENING_LINE } from "@/lib/chitra-prompt";
+import ChitraCardView, { type ChitraCard } from "./ChitraCards";
 import styles from "./ChitraChatSurface.module.css";
 
 type MsgFrom = "chitra" | "visitor";
@@ -12,10 +13,12 @@ interface Msg {
   id: string;
   from: MsgFrom;
   text: string;
+  card?: ChitraCard | null;
 }
 
 interface ChitraResponse {
   reply?: string;
+  card?: ChitraCard | null;
   error?: string;
   source?: "claude" | "fallback";
 }
@@ -73,15 +76,18 @@ export default function ChitraChatSurface() {
     }
   }, [voiceOn]);
 
-  const pushMsg = useCallback((from: MsgFrom, text: string) => {
-    counter.current += 1;
-    const next: Msg = { id: `m${counter.current}`, from, text };
-    setMsgs((m) => [...m, next]);
-    if (from === "chitra") speak(text);
-  }, [speak]);
+  const pushMsg = useCallback(
+    (from: MsgFrom, text: string, card?: ChitraCard | null) => {
+      counter.current += 1;
+      const next: Msg = { id: `m${counter.current}`, from, text, card };
+      setMsgs((m) => [...m, next]);
+      if (from === "chitra") speak(text);
+    },
+    [speak],
+  );
 
   const callChitra = useCallback(
-    async (history: Msg[]) => {
+    async (history: Msg[]): Promise<{ reply: string; card?: ChitraCard | null }> => {
       const payload = {
         messages: history
           .filter((m) => m.id !== "m0")
@@ -97,10 +103,10 @@ export default function ChitraChatSurface() {
           body: JSON.stringify(payload),
         });
         const data = (await res.json()) as ChitraResponse;
-        if (data.reply) return data.reply;
-        return data.error ?? FALLBACK_ON_NETWORK_ERROR;
+        if (data.reply) return { reply: data.reply, card: data.card };
+        return { reply: data.error ?? FALLBACK_ON_NETWORK_ERROR };
       } catch {
-        return FALLBACK_ON_NETWORK_ERROR;
+        return { reply: FALLBACK_ON_NETWORK_ERROR };
       }
     },
     [],
@@ -120,8 +126,8 @@ export default function ChitraChatSurface() {
     };
     const next = [...msgs, visitorMsg];
     setMsgs(next);
-    const reply = await callChitra(next);
-    pushMsg("chitra", reply);
+    const { reply, card } = await callChitra(next);
+    pushMsg("chitra", reply, card);
     setPending(false);
   }, [input, msgs, pending, callChitra, pushMsg]);
 
@@ -179,6 +185,7 @@ export default function ChitraChatSurface() {
             <div key={m.id} className={styles.chitra}>
               <div className={styles.caption}>Chitra</div>
               <p className={styles.chitraText}>{m.text}</p>
+              {m.card && <ChitraCardView card={m.card} />}
             </div>
           ) : (
             <div key={m.id} className={styles.visitor}>
