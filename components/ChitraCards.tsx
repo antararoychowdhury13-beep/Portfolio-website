@@ -164,6 +164,25 @@ function BookCallCard() {
   );
 }
 
+function DeepDiveCard({ data }: { data: Record<string, unknown> }) {
+  const email = s(data.visitor_email);
+  const company = s(data.company_name);
+  const role = s(data.role_title);
+  const target = [role, company].filter(Boolean).join(" at ") || "the role";
+
+  return (
+    <div className={styles.card}>
+      <div className={styles.cardKick}>// agent · deep dive</div>
+      <p className={styles.bookLine}>
+        On it. I&apos;ll research {company || "the company"}, match {target} against
+        Anupam&apos;s case studies, and email him a fit memo with a draft reply.
+        He&apos;ll come back to you at <strong>{email}</strong> within a few
+        minutes.
+      </p>
+    </div>
+  );
+}
+
 export default function ChitraCardView({ card }: { card: ChitraCard }) {
   switch (card.type) {
     case "draft_intro_email":
@@ -174,6 +193,8 @@ export default function ChitraCardView({ card }: { card: ChitraCard }) {
       return <IfuAuditCard data={card.data} />;
     case "book_call":
       return <BookCallCard />;
+    case "request_deep_dive":
+      return <DeepDiveCard data={card.data} />;
     default:
       return null;
   }

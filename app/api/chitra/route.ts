@@ -1,5 +1,7 @@
+import { after } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { CHITRA_SYSTEM_PROMPT } from "@/lib/chitra-prompt";
+import { runDeepDive } from "@/lib/deep-dive";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -22,6 +24,7 @@ const CARD_TOOLS = new Set([
   "analyze_jd_fit",
   "run_ifu_audit",
   "book_call",
+  "request_deep_dive",
 ]);
 
 const TOOLS: Anthropic.Tool[] = [
@@ -103,6 +106,33 @@ const TOOLS: Anthropic.Tool[] = [
       "Offer to set up a call with Anupam. Use when the visitor is ready to talk directly.",
     input_schema: { type: "object", properties: {} },
   },
+  {
+    name: "request_deep_dive",
+    description:
+      "Kick off a background research job: read the JD, research the company, draft a fit memo + suggested reply, and email Anupam directly so he can respond personally. Use when the visitor has shared a JD AND wants to reach Anupam — not for casual fit questions (use analyze_jd_fit for those). Requires the visitor's email; ask for it first if not provided.",
+    input_schema: {
+      type: "object",
+      properties: {
+        jd_text: {
+          type: "string",
+          description: "The full job description the visitor pasted",
+        },
+        visitor_email: {
+          type: "string",
+          description: "Visitor's email so Anupam can reply directly",
+        },
+        company_name: {
+          type: "string",
+          description: "Company name if mentioned — helps the research step",
+        },
+        role_title: {
+          type: "string",
+          description: "Role title if discernible from the JD",
+        },
+      },
+      required: ["jd_text", "visitor_email"],
+    },
+  },
 ];
 
 const WEB_FETCH: Anthropic.Messages.ToolUnion = {
@@ -149,6 +179,8 @@ function defaultReplyFor(tool: string): string {
       return "Here's the Intent-First read.";
     case "book_call":
       return "Whenever you're ready, I can set up a call.";
+    case "request_deep_dive":
+      return "On it — I'll dig in and email Anupam directly. He'll come back to you within a few minutes.";
     default:
       return "";
   }
@@ -235,6 +267,27 @@ export async function POST(req: Request) {
     const card = toolUse
       ? { type: toolUse.name, data: toolUse.input as Record<string, unknown> }
       : null;
+
+    // request_deep_dive is the one card whose firing kicks off real work.
+    // The agent runs after the response is sent so the visitor isn't blocked.
+    if (toolUse?.name === "request_deep_dive") {
+      const input = toolUse.input as {
+        jd_text?: string;
+        visitor_email?: string;
+        company_name?: string;
+        role_title?: string;
+      };
+      if (input.jd_text && input.visitor_email) {
+        after(
+          runDeepDive({
+            jdText: input.jd_text,
+            visitorEmail: input.visitor_email,
+            companyName: input.company_name,
+            roleTitle: input.role_title,
+          }),
+        );
+      }
+    }
 
     return Response.json({
       reply: reply || (card ? defaultReplyFor(card.type) : FALLBACK_REPLY),
