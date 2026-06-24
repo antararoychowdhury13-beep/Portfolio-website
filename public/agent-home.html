@@ -177,7 +177,7 @@ footer h2 em{font-style:italic;color:var(--accent)}
   <div class="console reveal" id="console">
     <div class="console-bar">
       <span class="pr">›</span>
-      <input id="cinput" type="text" autocomplete="off" spellcheck="false" placeholder="Ask: 'prove leadership' · 'why VP-ready' · 'hardest decision' · 'what is Intent-First UX'">
+      <input id="cinput" type="text" autocomplete="off" spellcheck="false" placeholder="Ask anything about Anupam — the agent will answer. Try: 'walk me through Smart Mining' or 'why should we hire him?'">
       <button class="send" id="csend">RESOLVE</button>
     </div>
     <div class="chips" id="chips"></div>
@@ -340,8 +340,49 @@ function resolve(k){
   ansEl.scrollIntoView({behavior:reduceM?'auto':'smooth',block:'nearest'});
 }
 function show(it){bodyEl.innerHTML=it.body();}
-document.getElementById('csend').onclick=()=>resolve(route(input.value));
-input.addEventListener('keydown',e=>{if(e.key==='Enter')resolve(route(input.value));});
+
+/* ===== Live LLM agent — POSTs to /api/ask (Groq / Llama 3.3 70B) ===== */
+const INTENT_TO_SECTION={cases:'work',contact:'contact',leadership:'gravity',impact:'gravity',ifu:'gravity',gravity:'gravity',arc:'gravity'};
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
+async function askAgent(question){
+  ansEl.classList.remove('empty');
+  tagEl.textContent='LIVE AGENT';
+  bodyEl.innerHTML='';
+  if(typing)clearInterval(typing);
+  const thinking='› asking the agent…';
+  lineEl.innerHTML='<span class="cursor"></span>';
+  let i=0; typing=setInterval(()=>{i++;lineEl.innerHTML=thinking.slice(0,i)+'<span class="cursor"></span>';if(i>=thinking.length)clearInterval(typing);},18);
+  ansEl.scrollIntoView({behavior:reduceM?'auto':'smooth',block:'nearest'});
+
+  try{
+    const r=await fetch('/api/ask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question})});
+    const data=await r.json();
+    if(typing)clearInterval(typing);
+    const tag=data.source==='groq'?'RESOLVED · LLAMA 3.3 70B':data.source==='fallback'?'OFFLINE FALLBACK':'AGENT';
+    tagEl.textContent=tag;
+    lineEl.textContent='› you asked: '+question;
+    let actions='';
+    if(data.openUrl){actions=`<div class="a-actions"><a href="${escapeHtml(data.openUrl)}">Open the page</a></div>`;}
+    bodyEl.innerHTML=`<div class="a-statement">${escapeHtml(data.reply)}</div>${actions}<p class="a-note" style="margin-top:18px">Powered by Llama 3.3 (Groq, free tier). Replies are grounded in Anupam's evidence; the chips above give cached, instant answers.</p>`;
+    const sec=INTENT_TO_SECTION[data.intent];
+    if(sec){setTimeout(()=>document.getElementById(sec)?.scrollIntoView({behavior:'smooth',block:'start'}),900);}
+  }catch(err){
+    if(typing)clearInterval(typing);
+    tagEl.textContent='AGENT OFFLINE';
+    lineEl.textContent='› couldn’t reach the agent';
+    bodyEl.innerHTML=`<div class="a-statement">The agent is offline right now. Try one of the chips above for cached answers, or open a case study below.</div>`;
+  }
+}
+
+function handleSubmit(){
+  const q=input.value.trim();
+  if(!q)return;
+  input.value='';
+  askAgent(q);
+}
+document.getElementById('csend').onclick=handleSubmit;
+input.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();handleSubmit();}});
 
 /* ===== Gravity capability field ===== */
 (function(){
