@@ -4,6 +4,15 @@ const nextConfig = {
   experimental: {
     optimizePackageImports: [],
   },
+  async rewrites() {
+    return {
+      beforeFiles: [
+        { source: "/", destination: "/agent-home.html" },
+      ],
+      afterFiles: [],
+      fallback: [],
+    };
+  },
 };
 
 export default nextConfig;
