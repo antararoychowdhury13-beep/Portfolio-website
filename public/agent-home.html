@@ -359,7 +359,7 @@ async function askAgent(question){
     const r=await fetch('/api/ask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question})});
     const data=await r.json();
     if(typing)clearInterval(typing);
-    const tag=data.source==='groq'?'RESOLVED · LLAMA 3.3 70B':data.source==='fallback'?'OFFLINE FALLBACK':'AGENT';
+    const tag=data.source==='openai'?'RESOLVED · GPT-4o MINI':data.source==='groq'?'RESOLVED · LLAMA 3.3 70B (FALLBACK)':data.source==='fallback'?'OFFLINE FALLBACK':'AGENT';
     tagEl.textContent=tag;
     lineEl.textContent='› you asked: '+question;
     let actions='';

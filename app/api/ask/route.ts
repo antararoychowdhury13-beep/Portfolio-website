@@ -1,12 +1,16 @@
 // "Ask Me and My Portfolio" — LLM-backed agent for the homepage console.
-// Uses Groq's OpenAI-compatible API (free tier, Llama 3.3 70B).
+// Primary: OpenAI (gpt-4o-mini, paid). Fallback: Groq (Llama 3.3 70B, free).
+// Set OPENAI_API_KEY for the primary, GROQ_API_KEY for the fallback — either or both.
 // EDIT SYSTEM PROMPT / EVIDENCE in the SYSTEM constant below.
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
 
+const OPENAI_URL = "https://api.openai.com/v1/chat/completions";
+const OPENAI_MODEL = "gpt-4o-mini";          // cheap + fast; swap to "gpt-4.1-mini" or "gpt-4o" if you want.
+
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
-const GROQ_MODEL = "llama-3.3-70b-versatile";
+const GROQ_MODEL = "llama-3.3-70b-versatile"; // free fallback if OpenAI key is missing or fails.
 
 const SYSTEM = `You are "Ask Me and My Portfolio" — a concise, recruiter-grade agent that answers questions about Anupam Sarkar, a Product Design Manager.
 
@@ -120,25 +124,83 @@ interface AskBody {
   question?: string;
 }
 
+type Source = "openai" | "groq" | "fallback" | "error";
+
 interface AgentReply {
   reply: string;
   intent: string;
   openUrl: string;
-  source: "groq" | "fallback" | "error";
+  source: Source;
 }
 
-function fallback(): AgentReply {
+interface ProviderResult {
+  reply: string;
+  intent: string;
+  openUrl: string;
+}
+
+function fallbackReply(): AgentReply {
   return {
     reply:
-      "The live agent isn't wired in this environment yet — Anupam's GROQ_API_KEY isn't set. The chips above give cached answers, and the case studies below tell the rest of the story.",
+      "The live agent isn't wired in this environment yet — neither OPENAI_API_KEY nor GROQ_API_KEY is set. The chips above give cached answers, and the case studies below tell the rest of the story.",
     intent: "none",
     openUrl: "",
     source: "fallback",
   };
 }
 
+/** Call any OpenAI-compatible chat-completions endpoint (works for both OpenAI and Groq). */
+async function callChat(
+  url: string,
+  model: string,
+  apiKey: string,
+  question: string,
+): Promise<ProviderResult> {
+  const r = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model,
+      temperature: 0.4,
+      max_tokens: 350,
+      response_format: { type: "json_object" },
+      messages: [
+        { role: "system", content: SYSTEM },
+        { role: "user", content: question },
+      ],
+    }),
+  });
+
+  if (!r.ok) {
+    const text = await r.text().catch(() => "");
+    throw new Error(`${url} responded ${r.status}: ${text.slice(0, 200)}`);
+  }
+
+  const data = (await r.json()) as {
+    choices?: { message?: { content?: string } }[];
+  };
+  const raw = data.choices?.[0]?.message?.content ?? "{}";
+
+  let parsed: Partial<ProviderResult> = {};
+  try {
+    parsed = JSON.parse(raw) as Partial<ProviderResult>;
+  } catch {
+    parsed = { reply: raw, intent: "none", openUrl: "" };
+  }
+
+  return {
+    reply: parsed.reply ?? "I couldn't generate a reply this time — try one of the chips above.",
+    intent: parsed.intent ?? "none",
+    openUrl: parsed.openUrl ?? "",
+  };
+}
+
 export async function POST(req: Request) {
-  const apiKey = process.env.GROQ_API_KEY;
+  const openaiKey = process.env.OPENAI_API_KEY;
+  const groqKey = process.env.GROQ_API_KEY;
 
   let body: AskBody = {};
   try {
@@ -150,80 +212,48 @@ export async function POST(req: Request) {
 
   if (!question) {
     return Response.json(
-      { reply: "Ask me something about Anupam.", intent: "none", openUrl: "", source: "error" },
+      { reply: "Ask me something about Anupam.", intent: "none", openUrl: "", source: "error" } satisfies AgentReply,
       { status: 400 },
     );
   }
   if (question.length > 500) {
     return Response.json(
-      { reply: "Keep the question under 500 characters.", intent: "none", openUrl: "", source: "error" },
+      { reply: "Keep the question under 500 characters.", intent: "none", openUrl: "", source: "error" } satisfies AgentReply,
       { status: 400 },
     );
   }
 
-  if (!apiKey) {
-    return Response.json(fallback());
+  if (!openaiKey && !groqKey) {
+    return Response.json(fallbackReply());
   }
 
-  try {
-    const r = await fetch(GROQ_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: GROQ_MODEL,
-        temperature: 0.4,
-        max_tokens: 350,
-        response_format: { type: "json_object" },
-        messages: [
-          { role: "system", content: SYSTEM },
-          { role: "user", content: question },
-        ],
-      }),
-    });
-
-    if (!r.ok) {
-      const text = await r.text().catch(() => "");
-      console.error("Groq error", r.status, text);
-      return Response.json({
-        reply:
-          "The agent hit a brief snag. Try the chips above for cached answers, or open a case study below.",
-        intent: "none",
-        openUrl: "",
-        source: "error",
-      } satisfies AgentReply);
-    }
-
-    const data = (await r.json()) as {
-      choices?: { message?: { content?: string } }[];
-    };
-    const raw = data.choices?.[0]?.message?.content ?? "{}";
-
-    let parsed: Partial<AgentReply> = {};
+  // Try OpenAI first if its key exists.
+  if (openaiKey) {
     try {
-      parsed = JSON.parse(raw) as Partial<AgentReply>;
-    } catch {
-      parsed = { reply: raw, intent: "none", openUrl: "" };
+      const result = await callChat(OPENAI_URL, OPENAI_MODEL, openaiKey, question);
+      return Response.json({ ...result, source: "openai" } satisfies AgentReply);
+    } catch (err) {
+      console.error("OpenAI call failed:", err);
+      // fall through to Groq if available
     }
-
-    return Response.json({
-      reply:
-        parsed.reply ??
-        "I couldn't generate a reply this time — try one of the chips above.",
-      intent: parsed.intent ?? "none",
-      openUrl: parsed.openUrl ?? "",
-      source: "groq",
-    } satisfies AgentReply);
-  } catch (err) {
-    console.error("Ask route exception", err);
-    return Response.json({
-      reply:
-        "The agent is temporarily unavailable. The chips above and the case studies below still work.",
-      intent: "none",
-      openUrl: "",
-      source: "error",
-    } satisfies AgentReply);
   }
+
+  // Groq fallback.
+  if (groqKey) {
+    try {
+      const result = await callChat(GROQ_URL, GROQ_MODEL, groqKey, question);
+      return Response.json({ ...result, source: "groq" } satisfies AgentReply);
+    } catch (err) {
+      console.error("Groq call failed:", err);
+    }
+  }
+
+  // Last resort.
+  return Response.json({
+    reply:
+      "The agent is temporarily unavailable. The chips above and the case studies below still work.",
+    intent: "none",
+    openUrl: "",
+    source: "error",
+  } satisfies AgentReply);
 }
