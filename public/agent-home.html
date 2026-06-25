@@ -438,11 +438,43 @@ if(SR){
   micBtnEl.disabled=true;
   setHint('Voice not supported in this browser — type instead','warn');
 }
-micBtnEl.onclick=()=>{
-  if(!SR)return;
-  if(_listening){try{_recog.stop();}catch(_){}return;}
+micBtnEl.onclick=async()=>{
+  // Immediate visible feedback so the user knows the tap registered, regardless of what happens next.
+  setHint('Starting mic…','live');
+  if(!SR){setHint('Voice not supported in this browser — type instead','warn');return;}
+  if(_listening){try{_recog.stop();}catch(_){}setHint('Mic stopped','idle');return;}
+  // Stop any TTS that might still be playing from a previous answer.
   try{speechSynthesis.cancel();}catch(_){}
-  try{_recog.start();}catch(_){setHint('Could not start mic — already running?','warn');}
+
+  // Pre-flight: query mic permission. If denied, tell the user exactly how to fix it.
+  if(navigator.permissions&&navigator.permissions.query){
+    try{
+      const p=await navigator.permissions.query({name:'microphone'});
+      if(p.state==='denied'){
+        setHint('Mic blocked — click the lock 🔒 in the address bar → Site settings → Microphone → Allow → reload','warn');
+        return;
+      }
+    }catch(_){/* some browsers reject this query — fall through to getUserMedia */}
+  }
+
+  // Force the permission prompt if it hasn't been answered yet, by briefly opening a mic stream.
+  // This guarantees Chrome shows the popup, where the silent SpeechRecognition.start() would not.
+  if(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia){
+    try{
+      const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+      stream.getTracks().forEach(t=>t.stop()); // release immediately — we only needed the prompt
+    }catch(err){
+      setHint('Mic permission denied — please allow microphone access for this site','warn');
+      return;
+    }
+  }
+
+  // Now start actual speech recognition.
+  try{
+    _recog.start();
+  }catch(err){
+    setHint('Could not start mic: '+(err&&err.message||'unknown error'),'warn');
+  }
 };
 function setMuteIcon(){
   muteBtnEl.innerHTML=_muted
@@ -456,17 +488,42 @@ muteBtnEl.onclick=()=>{
   setMuteIcon();
   if(_muted){try{speechSynthesis.cancel();}catch(_){}}
 };
+function _pickVoice(){
+  const voices=speechSynthesis.getVoices();
+  return voices.find(v=>/en[-_]/i.test(v.lang)&&/Google|Microsoft|Samantha|Daniel|Karen|Aria|Natural/i.test(v.name))
+       ||voices.find(v=>v.lang&&v.lang.toLowerCase().startsWith('en'))
+       ||voices[0];
+}
+let _pendingUtterance=null;
 function speak(text){
   if(_muted||!('speechSynthesis' in window)||!text)return;
   try{speechSynthesis.cancel();}catch(_){}
   const u=new SpeechSynthesisUtterance(text);
   u.rate=1.02;u.pitch=1.0;u.volume=1.0;
-  const voices=speechSynthesis.getVoices();
-  const pref=voices.find(v=>/en[-_]/i.test(v.lang)&&/Google|Microsoft|Samantha|Daniel|Karen|Aria/i.test(v.name))||voices.find(v=>v.lang&&v.lang.toLowerCase().startsWith('en'));
-  if(pref)u.voice=pref;
-  speechSynthesis.speak(u);
+  u.onstart=()=>setHint('🔊 Speaking the reply…','live');
+  u.onend=()=>setHint('Tap mic to ask again · GPT-4o MINI','idle');
+  u.onerror=(e)=>setHint('Voice playback error: '+(e.error||'unknown')+' — try unmuting browser tab','warn');
+  const v=_pickVoice();
+  if(v){u.voice=v;speechSynthesis.speak(u);}
+  else{
+    // Voices not loaded yet — wait for them.
+    _pendingUtterance=u;
+    setHint('Loading voices…','live');
+  }
 }
-if('speechSynthesis' in window){speechSynthesis.onvoiceschanged=()=>{};}
+if('speechSynthesis' in window){
+  // Refresh voice list once the browser finishes loading it.
+  speechSynthesis.onvoiceschanged=()=>{
+    if(_pendingUtterance){
+      const v=_pickVoice();
+      if(v){_pendingUtterance.voice=v;}
+      speechSynthesis.speak(_pendingUtterance);
+      _pendingUtterance=null;
+    }
+  };
+  // Kick the async voice load on Chrome.
+  speechSynthesis.getVoices();
+}
 
 /* ===== Gravity capability field ===== */
 (function(){
