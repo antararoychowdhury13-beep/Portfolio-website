@@ -53,10 +53,25 @@ nav{position:fixed;top:0;left:0;right:0;z-index:40;backdrop-filter:blur(16px);-w
 .console{margin-top:42px;max-width:860px;background:linear-gradient(180deg,rgba(20,20,27,.9),rgba(14,14,19,.9));border:1px solid var(--line-2);border-radius:18px;padding:8px;box-shadow:0 40px 120px -40px rgba(0,0,0,.8),inset 0 1px 0 rgba(255,255,255,.04)}
 .console-bar{display:flex;align-items:center;gap:12px;padding:14px 18px;background:var(--ink);border-radius:12px;border:1px solid var(--line)}
 .console-bar .pr{font-family:var(--mono);color:var(--accent);font-size:16px;font-weight:600}
-.console-bar input{flex:1;background:none;border:none;outline:none;color:var(--cream);font-family:var(--mono);font-size:14px;letter-spacing:.01em}
+.console-bar input{flex:1;background:none;border:none;outline:none;color:var(--cream);font-family:var(--mono);font-size:14px;letter-spacing:.01em;min-width:0}
 .console-bar input::placeholder{color:var(--muted-2)}
 .console-bar .send{font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--ink);background:var(--accent);border:none;border-radius:8px;padding:8px 14px;cursor:pointer;font-weight:600;transition:transform .15s}
 .console-bar .send:hover{transform:translateY(-1px)}
+.console-bar .micbtn{width:38px;height:38px;border-radius:50%;border:1px solid var(--line-2);background:var(--ink-3);color:var(--accent);display:grid;place-items:center;cursor:pointer;transition:all .2s;flex-shrink:0;position:relative}
+.console-bar .micbtn:hover{border-color:var(--accent);background:rgba(196,245,66,.06)}
+.console-bar .micbtn svg{width:16px;height:16px}
+.console-bar .micbtn[disabled]{opacity:.35;cursor:not-allowed}
+.console-bar .micbtn.listening{border-color:var(--accent);box-shadow:0 0 0 3px rgba(196,245,66,.20),0 0 26px rgba(196,245,66,.45)}
+.console-bar .micbtn.listening::after{content:"";position:absolute;inset:-5px;border-radius:50%;border:1px solid var(--accent);opacity:.6;animation:micpulse 1.4s ease-out infinite;pointer-events:none}
+@keyframes micpulse{0%{transform:scale(1);opacity:.55}100%{transform:scale(1.55);opacity:0}}
+.console-bar .mutebtn{width:30px;height:30px;border-radius:50%;border:1px solid var(--line);background:transparent;color:var(--muted);display:grid;place-items:center;cursor:pointer;transition:all .2s;flex-shrink:0}
+.console-bar .mutebtn:hover{color:var(--cream);border-color:var(--line-2)}
+.console-bar .mutebtn.is-muted{color:var(--muted-2);border-style:dashed}
+.console-bar .mutebtn svg{width:13px;height:13px}
+.va-hint{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:var(--muted-2);text-transform:uppercase;padding:10px 10px 4px;display:flex;align-items:center;gap:8px}
+.va-hint .dot{width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent);animation:hintbreathe 1.6s ease-in-out infinite}
+.va-hint.warn{color:var(--warm)}
+@keyframes hintbreathe{0%,100%{opacity:1}50%{opacity:.35}}
 .chips{display:flex;flex-wrap:wrap;gap:8px;padding:14px 8px 8px}
 .chip{font-family:var(--mono);font-size:11px;letter-spacing:.04em;color:var(--muted);background:var(--ink-3);border:1px solid var(--line);border-radius:99px;padding:9px 15px;cursor:pointer;transition:all .18s;display:flex;align-items:center;gap:8px}
 .chip::before{content:"→";color:var(--accent);opacity:.6}
@@ -177,9 +192,16 @@ footer h2 em{font-style:italic;color:var(--accent)}
   <div class="console reveal" id="console">
     <div class="console-bar">
       <span class="pr">›</span>
-      <input id="cinput" type="text" autocomplete="off" spellcheck="false" placeholder="Ask anything about Anupam — the agent will answer. Try: 'walk me through Smart Mining' or 'why should we hire him?'">
+      <input id="cinput" type="text" autocomplete="off" spellcheck="false" placeholder="Ask anything — type, or tap the mic to speak">
+      <button class="micbtn" id="micbtn" title="Tap to speak" aria-label="Speak your question">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4M8 22h8"/></svg>
+      </button>
+      <button class="mutebtn" id="mutebtn" title="Mute spoken replies" aria-label="Mute spoken replies">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/></svg>
+      </button>
       <button class="send" id="csend">RESOLVE</button>
     </div>
+    <div class="va-hint" id="vaHint"></div>
     <div class="chips" id="chips"></div>
     <div class="answer empty" id="answer">
       <div class="a-head"><span class="tag" id="atag">RESOLVED</span></div>
@@ -364,7 +386,8 @@ async function askAgent(question){
     lineEl.textContent='› you asked: '+question;
     let actions='';
     if(data.openUrl){actions=`<div class="a-actions"><a href="${escapeHtml(data.openUrl)}">Open the page</a></div>`;}
-    bodyEl.innerHTML=`<div class="a-statement">${escapeHtml(data.reply)}</div>${actions}<p class="a-note" style="margin-top:18px">Powered by Llama 3.3 (Groq, free tier). Replies are grounded in Anupam's evidence; the chips above give cached, instant answers.</p>`;
+    bodyEl.innerHTML=`<div class="a-statement">${escapeHtml(data.reply)}</div>${actions}<p class="a-note" style="margin-top:18px">Grounded in Anupam's evidence. Chips above give cached, instant answers.</p>`;
+    if(typeof speak==='function')speak(data.reply);
     const sec=INTENT_TO_SECTION[data.intent];
     if(sec){setTimeout(()=>document.getElementById(sec)?.scrollIntoView({behavior:'smooth',block:'start'}),900);}
   }catch(err){
@@ -383,6 +406,67 @@ function handleSubmit(){
 }
 document.getElementById('csend').onclick=handleSubmit;
 input.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();handleSubmit();}});
+
+/* ===== VUI — Web Speech API (browser-native, free) ===== */
+const micBtnEl=document.getElementById('micbtn'),muteBtnEl=document.getElementById('mutebtn'),vaHint=document.getElementById('vaHint');
+let _muted=false,_listening=false,_recog=null;
+function setHint(text,mode){
+  if(!vaHint)return;
+  vaHint.className='va-hint'+(mode==='warn'?' warn':'');
+  vaHint.innerHTML=(mode==='live'?'<span class="dot"></span>':'')+text;
+}
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+if(SR){
+  _recog=new SR();
+  _recog.lang='en-US';_recog.continuous=false;_recog.interimResults=false;_recog.maxAlternatives=1;
+  _recog.onstart=()=>{_listening=true;micBtnEl.classList.add('listening');setHint('Listening… speak now','live');};
+  _recog.onend=()=>{_listening=false;micBtnEl.classList.remove('listening');};
+  _recog.onerror=(e)=>{
+    _listening=false;micBtnEl.classList.remove('listening');
+    if(e.error==='not-allowed'||e.error==='service-not-allowed')setHint('Mic blocked — allow it in the address bar','warn');
+    else if(e.error==='no-speech')setHint('Didn’t catch that — tap to try again','warn');
+    else setHint('Speech error: '+e.error,'warn');
+  };
+  _recog.onresult=(e)=>{
+    const t=e.results[0][0].transcript;
+    if(!t)return;
+    setHint('You said: "'+t+'"','idle');
+    askAgent(t);
+  };
+  setHint('Tap mic to speak · GPT-4o MINI','idle');
+}else{
+  micBtnEl.disabled=true;
+  setHint('Voice not supported in this browser — type instead','warn');
+}
+micBtnEl.onclick=()=>{
+  if(!SR)return;
+  if(_listening){try{_recog.stop();}catch(_){}return;}
+  try{speechSynthesis.cancel();}catch(_){}
+  try{_recog.start();}catch(_){setHint('Could not start mic — already running?','warn');}
+};
+function setMuteIcon(){
+  muteBtnEl.innerHTML=_muted
+    ?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H2v6h4l5 4z"/><path d="M22 9l-6 6M16 9l6 6"/></svg>'
+    :'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/></svg>';
+}
+muteBtnEl.onclick=()=>{
+  _muted=!_muted;
+  muteBtnEl.classList.toggle('is-muted',_muted);
+  muteBtnEl.title=_muted?'Unmute spoken replies':'Mute spoken replies';
+  setMuteIcon();
+  if(_muted){try{speechSynthesis.cancel();}catch(_){}}
+};
+function speak(text){
+  if(_muted||!('speechSynthesis' in window)||!text)return;
+  try{speechSynthesis.cancel();}catch(_){}
+  const u=new SpeechSynthesisUtterance(text);
+  u.rate=1.02;u.pitch=1.0;u.volume=1.0;
+  const voices=speechSynthesis.getVoices();
+  const pref=voices.find(v=>/en[-_]/i.test(v.lang)&&/Google|Microsoft|Samantha|Daniel|Karen|Aria/i.test(v.name))||voices.find(v=>v.lang&&v.lang.toLowerCase().startsWith('en'));
+  if(pref)u.voice=pref;
+  speechSynthesis.speak(u);
+}
+if('speechSynthesis' in window){speechSynthesis.onvoiceschanged=()=>{};}
 
 /* ===== Gravity capability field ===== */
 (function(){
