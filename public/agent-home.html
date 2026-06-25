@@ -425,7 +425,10 @@ if(SR){
     _listening=false;micBtnEl.classList.remove('listening');
     if(e.error==='not-allowed'||e.error==='service-not-allowed')setHint('Mic blocked — allow it in the address bar','warn');
     else if(e.error==='no-speech')setHint('Didn’t catch that — tap to try again','warn');
-    else setHint('Speech error: '+e.error,'warn');
+    else if(e.error==='network')setHint('Chrome’s speech service unreachable. Disable ad-blockers/VPN, or just type your question — the agent still answers in voice.','warn');
+    else if(e.error==='audio-capture')setHint('No microphone detected — check your input device','warn');
+    else if(e.error==='aborted')setHint('Mic stopped','idle');
+    else setHint('Speech error: '+e.error+' — type instead?','warn');
   };
   _recog.onresult=(e)=>{
     const t=e.results[0][0].transcript;
