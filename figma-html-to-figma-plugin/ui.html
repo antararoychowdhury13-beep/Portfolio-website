@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<style>
+  :root { color-scheme: light dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font: 12px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    color: #1e1e1e;
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+  }
+  @media (prefers-color-scheme: dark) {
+    body { color: #e6e6e6; background: #2c2c2c; }
+    textarea, select, .card { background: #383838 !important; color: #e6e6e6 !important; border-color: #4d4d4d !important; }
+    .hint { color: #a3a3a3 !important; }
+  }
+  .pad { padding: 12px; }
+  h1 { font-size: 13px; margin: 0 0 4px; font-weight: 600; }
+  .hint { color: #6e6e6e; font-size: 11px; margin: 0 0 10px; line-height: 1.5; }
+  textarea {
+    width: 100%;
+    height: 150px;
+    resize: vertical;
+    font: 11px ui-monospace, SFMono-Regular, Menlo, monospace;
+    border: 1px solid #d9d9d9;
+    border-radius: 6px;
+    padding: 8px;
+    outline: none;
+  }
+  textarea:focus { border-color: #18a0fb; }
+  .row { display: flex; gap: 8px; align-items: center; margin-top: 10px; flex-wrap: wrap; }
+  label.opt { display: flex; align-items: center; gap: 6px; font-size: 11px; }
+  select {
+    font-size: 11px; padding: 4px 6px; border-radius: 4px; border: 1px solid #d9d9d9;
+  }
+  .spacer { flex: 1; }
+  button {
+    background: #18a0fb; color: #fff; border: none; border-radius: 6px;
+    padding: 8px 14px; font-size: 12px; font-weight: 600; cursor: pointer;
+  }
+  button:disabled { background: #b3b3b3; cursor: default; }
+  button.secondary { background: transparent; color: #18a0fb; border: 1px solid #18a0fb; }
+  #status {
+    flex: 1;
+    overflow-y: auto;
+    border-top: 1px solid #e6e6e6;
+    padding: 10px 12px;
+    font: 11px ui-monospace, SFMono-Regular, Menlo, monospace;
+    white-space: pre-wrap;
+  }
+  .log-error { color: #d64545; }
+  .log-ok { color: #16a34a; }
+  .log-info { color: #6e6e6e; }
+  #dropzone {
+    border: 1px dashed #b3b3b3; border-radius: 6px; padding: 8px 10px; margin-top: 8px;
+    font-size: 11px; color: #6e6e6e; text-align: center; cursor: pointer;
+  }
+  #dropzone.drag { border-color: #18a0fb; color: #18a0fb; }
+</style>
+</head>
+<body>
+  <div class="pad">
+    <h1>HTML → Figma</h1>
+    <p class="hint">Paste a full HTML document (or a fragment) below. It's rendered off-screen, its computed
+      layout and styles are read back, and matching Figma frames / text / images are created — grouped to
+      mirror your DOM structure.</p>
+    <textarea id="html-input" placeholder="&lt;div class=&quot;card&quot;&gt;...&lt;/div&gt;"></textarea>
+    <div id="dropzone">or drop a .html file here / click to choose one</div>
+    <input type="file" id="file-input" accept=".html,.htm" style="display:none" />
+    <div class="row">
+      <label class="opt">Freeze layout at
+        <select id="viewport-select">
+          <option value="1440">Desktop · 1440px</option>
+          <option value="1024">Tablet · 1024px</option>
+          <option value="768">Tablet · 768px</option>
+          <option value="375">Mobile · 375px</option>
+        </select>
+      </label>
+      <label class="opt"><input type="checkbox" id="autolayout-toggle" checked /> Use Auto Layout for flex containers</label>
+    </div>
+    <div class="row">
+      <label class="opt"><input type="checkbox" id="group-toggle" checked /> Group repeated items into components</label>
+      <div class="spacer"></div>
+      <button class="secondary" id="sample-btn" type="button">Load sample</button>
+      <button id="convert-btn" type="button">Convert to Figma</button>
+    </div>
+  </div>
+  <div id="status"></div>
+
+<script>
+(function () {
+  var statusEl = document.getElementById('status');
+  var convertBtn = document.getElementById('convert-btn');
+  var htmlInput = document.getElementById('html-input');
+  var viewportSelect = document.getElementById('viewport-select');
+  var autolayoutToggle = document.getElementById('autolayout-toggle');
+  var groupToggle = document.getElementById('group-toggle');
+  var dropzone = document.getElementById('dropzone');
+  var fileInput = document.getElementById('file-input');
+  var sampleBtn = document.getElementById('sample-btn');
+
+  function log(msg, cls) {
+    var line = document.createElement('div');
+    if (cls) line.className = cls;
+    line.textContent = msg;
+    statusEl.appendChild(line);
+    statusEl.scrollTop = statusEl.scrollHeight;
+  }
+
+  dropzone.addEventListener('click', function () { fileInput.click(); });
+  fileInput.addEventListener('change', function (e) {
+    var f = e.target.files[0];
+    if (!f) return;
+    var reader = new FileReader();
+    reader.onload = function () { htmlInput.value = reader.result; };
+    reader.readAsText(f);
+  });
+  ['dragover', 'dragenter'].forEach(function (evt) {
+    dropzone.addEventListener(evt, function (e) { e.preventDefault(); dropzone.classList.add('drag'); });
+  });
+  ['dragleave', 'drop'].forEach(function (evt) {
+    dropzone.addEventListener(evt, function (e) { e.preventDefault(); dropzone.classList.remove('drag'); });
+  });
+  dropzone.addEventListener('drop', function (e) {
+    var f = e.dataTransfer.files[0];
+    if (!f) return;
+    var reader = new FileReader();
+    reader.onload = function () { htmlInput.value = reader.result; };
+    reader.readAsText(f);
+  });
+
+  sampleBtn.addEventListener('click', function () {
+    htmlInput.value = SAMPLE_HTML;
+  });
+
+  // ---------- colour / paint parsing ----------
+
+  function splitTopLevelCommas(str) {
+    var parts = [];
+    var depth = 0, current = '';
+    for (var i = 0; i < str.length; i++) {
+      var ch = str[i];
+      if (ch === '(') depth++;
+      if (ch === ')') depth--;
+      if (ch === ',' && depth === 0) { parts.push(current.trim()); current = ''; }
+      else current += ch;
+    }
+    if (current.trim()) parts.push(current.trim());
+    return parts;
+  }
+
+  function parseColor(str) {
+    if (!str) return null;
+    str = str.trim();
+    if (str === 'transparent' || str === 'rgba(0, 0, 0, 0)') return null;
+    var m = str.match(/^rgba?\(([^)]+)\)$/i);
+    if (!m) return null;
+    var parts = m[1].split(',').map(function (s) { return s.trim(); });
+    var r = parseFloat(parts[0]) / 255;
+    var g = parseFloat(parts[1]) / 255;
+    var b = parseFloat(parts[2]) / 255;
+    var a = parts.length > 3 ? parseFloat(parts[3]) : 1;
+    if (isNaN(a)) a = 1;
+    return { r: r, g: g, b: b, a: a };
+  }
+
+  function parseGradient(str) {
+    var m = str.match(/^linear-gradient\(([\s\S]+)\)$/i);
+    if (!m) return null;
+    var parts = splitTopLevelCommas(m[1]);
+    var angleDeg = 180; // CSS default gradient direction is "to bottom"
+    var stopStrs = parts;
+    var first = parts[0];
+    var angleMatch = first.match(/^(-?[\d.]+)deg$/);
+    var toMatch = first.match(/^to\s+(top|bottom|left|right)(\s+(top|bottom|left|right))?$/);
+    if (angleMatch) { angleDeg = parseFloat(angleMatch[1]); stopStrs = parts.slice(1); }
+    else if (toMatch) {
+      var dirMap = { bottom: 180, top: 0, right: 90, left: 270 };
+      if (toMatch[3]) {
+        var combos = { 'bottom right': 135, 'bottom left': 225, 'top right': 45, 'top left': 315 };
+        angleDeg = combos[toMatch[1] + ' ' + toMatch[3]] || combos[toMatch[3] + ' ' + toMatch[1]] || 180;
+      } else angleDeg = dirMap[toMatch[1]] != null ? dirMap[toMatch[1]] : 180;
+      stopStrs = parts.slice(1);
+    }
+    var stops = [];
+    for (var j = 0; j < stopStrs.length; j++) {
+      var s = stopStrs[j];
+      var colorMatch = s.match(/^(rgba?\([^)]+\)|#[0-9a-f]{3,8}|[a-z]+)\s*([\d.]+%)?$/i);
+      if (!colorMatch) continue;
+      var col = resolveCssColorToRgba(colorMatch[1]);
+      if (!col) continue;
+      var pos = colorMatch[2] ? parseFloat(colorMatch[2]) / 100 : (j === 0 ? 0 : j === stopStrs.length - 1 ? 1 : null);
+      stops.push({ color: col, position: pos });
+    }
+    // fill in missing positions evenly
+    for (var k = 0; k < stops.length; k++) {
+      if (stops[k].position == null) {
+        stops[k].position = k / Math.max(1, stops.length - 1);
+      }
+    }
+    if (!stops.length) return null;
+    return { angleDeg: angleDeg, stops: stops };
+  }
+
+  var colorProbe = null;
+  function resolveCssColorToRgba(token) {
+    if (/^rgba?\(/i.test(token)) return parseColor(token);
+    if (!colorProbe) { colorProbe = document.createElement('div'); colorProbe.style.display = 'none'; document.body.appendChild(colorProbe); }
+    colorProbe.style.color = '';
+    colorProbe.style.color = token;
+    if (!colorProbe.style.color) return null;
+    var computed = getComputedStyle(colorProbe).color;
+    return parseColor(computed);
+  }
+
+  function parseBoxShadow(str) {
+    if (!str || str === 'none') return [];
+    var shadows = [];
+    var parts = splitTopLevelCommas(str);
+    parts.forEach(function (part) {
+      var inset = /inset/.test(part);
+      var withoutInset = part.replace(/inset/, '').trim();
+      var colorMatch = withoutInset.match(/(rgba?\([^)]+\)|#[0-9a-f]{3,8})/i);
+      var color = colorMatch ? parseColor(colorMatch[0]) || resolveCssColorToRgba(colorMatch[0]) : { r: 0, g: 0, b: 0, a: 1 };
+      var nums = withoutInset.replace(colorMatch ? colorMatch[0] : '', '').trim().split(/\s+/).filter(Boolean).map(parseFloat);
+      shadows.push({
+        inset: inset,
+        offsetX: nums[0] || 0,
+        offsetY: nums[1] || 0,
+        blur: nums[2] || 0,
+        spread: nums[3] || 0,
+        color: color
+      });
+    });
+    return shadows;
+  }
+
+  function parseCorner(el, cs, w, h) {
+    // Only the horizontal radius component is captured (percentages resolve
+    // against width per spec); elliptical corners with a distinct vertical
+    // radius aren't represented — a reasonable v1 gap since most real UI
+    // uses circular corners.
+    function px(prop) {
+      var v = cs.getPropertyValue(prop);
+      if (v.indexOf('%') > -1) return parseFloat(v) / 100 * w;
+      return parseFloat(v) || 0;
+    }
+    return {
+      tl: px('border-top-left-radius'),
+      tr: px('border-top-right-radius'),
+      br: px('border-bottom-right-radius'),
+      bl: px('border-bottom-left-radius')
+    };
+  }
+
+  // ---------- image handling ----------
+
+  function arrayBufferToBase64(buffer) {
+    var bytes = new Uint8Array(buffer);
+    var chunk = 0x8000;
+    var binary = '';
+    for (var i = 0; i < bytes.length; i += chunk) {
+      binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+    }
+    return btoa(binary);
+  }
+
+  function fetchImageAsBase64(url) {
+    return fetch(url, { mode: 'cors' }).then(function (res) {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.arrayBuffer();
+    }).then(function (buf) {
+      return { base64: arrayBufferToBase64(buf) };
+    }).catch(function (err) {
+      log('  ! image fetch failed (' + url.slice(0, 60) + '): ' + err.message, 'log-error');
+      return null;
+    });
+  }
+
+  function rasterizeSvg(svgEl, width, height) {
+    return new Promise(function (resolve) {
+      try {
+        var clone = svgEl.cloneNode(true);
+        clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+        if (!clone.getAttribute('width')) clone.setAttribute('width', width);
+        if (!clone.getAttribute('height')) clone.setAttribute('height', height);
+        var xml = new XMLSerializer().serializeToString(clone);
+        var svg64 = btoa(unescape(encodeURIComponent(xml)));
+        var img = new Image();
+        img.onload = function () {
+          var scale = 2;
+          var canvas = document.createElement('canvas');
+          canvas.width = Math.max(1, Math.round(width * scale));
+          canvas.height = Math.max(1, Math.round(height * scale));
+          var ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          var dataUrl = canvas.toDataURL('image/png');
+          resolve({ base64: dataUrl.split(',')[1] });
+        };
+        img.onerror = function () { resolve(null); };
+        img.src = 'data:image/svg+xml;base64,' + svg64;
+      } catch (e) { resolve(null); }
+    });
+  }
+
+  // ---------- text runs ----------
+
+  var INLINE_TAGS = { A: 1, SPAN: 1, STRONG: 1, EM: 1, B: 1, I: 1, U: 1, SMALL: 1, SUB: 1, SUP: 1, LABEL: 1, CODE: 1, ABBR: 1, MARK: 1, BR: 1 };
+
+  function isInlineLevel(el) {
+    var cs = getComputedStyle(el);
+    return cs.display.indexOf('inline') === 0 || INLINE_TAGS[el.tagName] === 1;
+  }
+
+  function isPurelyInlineContent(el) {
+    for (var i = 0; i < el.children.length; i++) {
+      var child = el.children[i];
+      if (!isInlineLevel(child)) return false;
+      if (!isPurelyInlineContent(child)) return false;
+    }
+    return true;
+  }
+
+  function applyTextTransform(text, transform) {
+    if (transform === 'uppercase') return text.toUpperCase();
+    if (transform === 'lowercase') return text.toLowerCase();
+    if (transform === 'capitalize') return text.replace(/\b\w/g, function (c) { return c.toUpperCase(); });
+    return text;
+  }
+
+  function styleForRun(el) {
+    var cs = getComputedStyle(el);
+    var families = cs.fontFamily.split(',').map(function (s) { return s.trim().replace(/^["']|["']$/g, ''); });
+    var lh = cs.lineHeight;
+    return {
+      fontFamilies: families,
+      fontWeight: parseInt(cs.fontWeight, 10) || 400,
+      italic: cs.fontStyle === 'italic' || cs.fontStyle === 'oblique',
+      fontSize: parseFloat(cs.fontSize) || 16,
+      color: parseColor(cs.color) || { r: 0, g: 0, b: 0, a: 1 },
+      letterSpacing: cs.letterSpacing === 'normal' ? 0 : parseFloat(cs.letterSpacing) || 0,
+      lineHeight: lh === 'normal' ? null : parseFloat(lh),
+      underline: cs.textDecorationLine.indexOf('underline') > -1,
+      strikethrough: cs.textDecorationLine.indexOf('line-through') > -1,
+      textTransform: cs.textTransform
+    };
+  }
+
+  function collectTextRuns(el) {
+    var chars = '';
+    var runs = [];
+
+    function visit(node, styleEl) {
+      if (node.nodeType === 3) {
+        var raw = node.textContent;
+        var collapsed = raw.replace(/\s+/g, ' ');
+        if (collapsed === '' ) return;
+        var start = chars.length;
+        var st = styleForRun(styleEl);
+        chars += applyTextTransform(collapsed, st.textTransform);
+        runs.push({ start: start, end: chars.length, style: st });
+        return;
+      }
+      if (node.nodeType !== 1) return;
+      if (node.tagName === 'BR') { chars += '\n'; return; }
+      var cs = getComputedStyle(node);
+      if (cs.display === 'none' || cs.visibility === 'hidden') return;
+      for (var i = 0; i < node.childNodes.length; i++) {
+        visit(node.childNodes[i], node);
+      }
+    }
+
+    for (var i = 0; i < el.childNodes.length; i++) visit(el.childNodes[i], el);
+
+    // trim leading/trailing whitespace, adjusting run bounds
+    var leading = chars.match(/^\s+/);
+    var trailing = chars.match(/\s+$/);
+    var lead = leading ? leading[0].length : 0;
+    var trail = trailing ? trailing[0].length : 0;
+    var trimmedLen = chars.length - lead - trail;
+    if (trimmedLen <= 0) return null;
+    chars = chars.slice(lead, chars.length - trail);
+    runs = runs.map(function (r) {
+      return { start: Math.max(0, r.start - lead), end: Math.min(chars.length, r.end - lead), style: r.style };
+    }).filter(function (r) { return r.end > r.start; });
+
+    if (!chars.trim()) return null;
+    return { characters: chars, runs: runs };
+  }
+
+  // ---------- repeat-group signatures ----------
+
+  function childSignature(el) {
+    var classes = (el.className && typeof el.className === 'string') ? el.className.trim().split(/\s+/).sort().join('.') : '';
+    return el.tagName + '|' + classes + '|' + el.children.length;
+  }
+
+  function markRepeatGroups(children) {
+    var i = 0;
+    while (i < children.length) {
+      var sig = children[i]._signature;
+      var j = i + 1;
+      while (j < children.length && children[j]._signature === sig && sig) j++;
+      var runLen = j - i;
+      if (runLen >= 3) {
+        var groupId = 'grp_' + i + '_' + sig.replace(/[^a-z0-9]/gi, '');
+        for (var k = i; k < j; k++) {
+          children[k].repeatGroup = { id: groupId, index: k - i, count: runLen };
+        }
+      }
+      i = j;
+    }
+  }
+
+  // ---------- friendly naming ----------
+
+  function friendlyName(el) {
+    var id = el.id ? '#' + el.id : '';
+    var cls = (el.className && typeof el.className === 'string' && el.className.trim())
+      ? '.' + el.className.trim().split(/\s+/).slice(0, 2).join('.') : '';
+    return el.tagName.toLowerCase() + id + cls;
+  }
+
+  // ---------- main walk ----------
+
+  var pendingImageWork = [];
+
+  // A leaf text element (button, badge, chip, text input, ...) may also carry
+  // background/border/radius/shadow. Figma text nodes can't render those, so
+  // when box styling is present we keep the outer node as a FRAME (holding
+  // that styling) and nest the glyphs in an inner TEXT child instead of
+  // silently dropping the box.
+  function finishTextLeaf(node, cs, textData) {
+    var hasBox = node.fills.length > 0 || node.strokes ||
+      (node.effects && node.effects.length > 0) ||
+      node.corner.tl > 0 || node.corner.tr > 0 || node.corner.br > 0 || node.corner.bl > 0;
+
+    if (!hasBox) {
+      node.type = 'TEXT';
+      node.text = { characters: textData.characters, runs: textData.runs, align: cs.textAlign };
+      return node;
+    }
+
+    node.type = 'FRAME';
+    var padTop = parseFloat(cs.paddingTop) || 0;
+    var padRight = parseFloat(cs.paddingRight) || 0;
+    var padBottom = parseFloat(cs.paddingBottom) || 0;
+    var padLeft = parseFloat(cs.paddingLeft) || 0;
+    node.children = [{
+      tag: 'span', name: 'label', type: 'TEXT',
+      x: node.x + padLeft, y: node.y + padTop,
+      width: Math.max(node.width - padLeft - padRight, 0.01),
+      height: Math.max(node.height - padTop - padBottom, 0.01),
+      rotation: 0, opacity: 1, clipsContent: false,
+      fills: [], strokes: null, corner: { tl: 0, tr: 0, br: 0, bl: 0 }, effects: [],
+      children: [],
+      text: { characters: textData.characters, runs: textData.runs, align: cs.textAlign }
+    }];
+    return node;
+  }
+
+  function buildNode(el, rootRect, isRoot) {
+    var cs = getComputedStyle(el);
+    if (cs.display === 'none' || (cs.visibility === 'hidden' && !isRoot)) return null;
+    // SVG elements report tagName in original (lowercase) case, unlike HTML
+    // elements which are always uppercase — normalize so tag comparisons below
+    // (IMG/SVG/INPUT/TEXTAREA) work for both.
+    var tag = el.tagName.toUpperCase();
+    if (['SCRIPT', 'STYLE', 'HEAD', 'META', 'LINK', 'TITLE', 'NOSCRIPT', 'TEMPLATE'].indexOf(tag) > -1) return null;
+
+    var rect = el.getBoundingClientRect();
+    if (!isRoot && rect.width <= 0 && rect.height <= 0) return null;
+
+    var transform = cs.transform && cs.transform !== 'none' ? cs.transform : null;
+    var rotation = 0, x, y, width, height;
+    if (transform) {
+      var m = transform.match(/matrix\(([^)]+)\)/);
+      if (m) {
+        var v = m[1].split(',').map(parseFloat);
+        var a = v[0], b = v[1];
+        var angle = Math.atan2(b, a) * 180 / Math.PI;
+        if (Math.abs(angle) > 0.2) {
+          rotation = -angle;
+          width = el.offsetWidth;
+          height = el.offsetHeight;
+          var cx = rect.left + rect.width / 2, cy = rect.top + rect.height / 2;
+          x = cx - width / 2 - rootRect.left;
+          y = cy - height / 2 - rootRect.top;
+        }
+      }
+    }
+    if (x === undefined) {
+      x = rect.left - rootRect.left;
+      y = rect.top - rootRect.top;
+      width = rect.width;
+      height = rect.height;
+    }
+
+    var opacity = parseFloat(cs.opacity);
+    if (isNaN(opacity)) opacity = 1;
+
+    var node = {
+      tag: tag.toLowerCase(),
+      name: friendlyName(el),
+      x: x, y: y, width: Math.max(width, 0.01), height: Math.max(height, 0.01),
+      rotation: rotation,
+      opacity: opacity,
+      clipsContent: cs.overflow === 'hidden' || cs.overflowX === 'hidden' || cs.overflowY === 'hidden',
+      fills: [],
+      strokes: null,
+      corner: parseCorner(el, cs, width, height),
+      effects: parseBoxShadow(cs.boxShadow),
+      children: []
+    };
+
+    var bg = parseColor(cs.backgroundColor);
+    if (bg && bg.a > 0) node.fills.push({ type: 'SOLID', color: bg, opacity: bg.a });
+
+    var bgImage = cs.backgroundImage;
+    if (bgImage && bgImage !== 'none') {
+      // CSS paints multiple comma-separated background layers with the first
+      // listed layer on top; Figma's fills array paints the *last* entry on
+      // top, so layers are queued here and appended in reverse.
+      var layers = splitTopLevelCommas(bgImage);
+      layers.reverse().forEach(function (layer) {
+        var urlMatch = layer.match(/^url\((['"]?)(.*?)\1\)$/);
+        if (urlMatch) {
+          var absUrl = new URL(urlMatch[2], el.baseURI).href;
+          var fillIndex = node.fills.length;
+          node.fills.push({ type: 'IMAGE', scaleMode: cs.backgroundSize === 'contain' ? 'FIT' : 'FILL' });
+          pendingImageWork.push(fetchImageAsBase64(absUrl).then(function (data) {
+            if (data) { node.fills[fillIndex].base64 = data.base64; }
+            else { node.fills[fillIndex]._drop = true; }
+          }));
+          return;
+        }
+        var gradient = parseGradient(layer);
+        if (gradient) node.fills.push({ type: 'GRADIENT', angleDeg: gradient.angleDeg, stops: gradient.stops });
+      });
+    }
+
+    // border
+    var sides = ['top', 'right', 'bottom', 'left'];
+    var borderInfo = {};
+    var anyBorder = false;
+    sides.forEach(function (side) {
+      var w = parseFloat(cs.getPropertyValue('border-' + side + '-width')) || 0;
+      var style = cs.getPropertyValue('border-' + side + '-style');
+      var color = parseColor(cs.getPropertyValue('border-' + side + '-color'));
+      if (w > 0 && style !== 'none' && color) {
+        borderInfo[side] = { width: w, color: color };
+        anyBorder = true;
+      }
+    });
+    if (anyBorder) node.strokes = borderInfo;
+
+    // flex info
+    if (cs.display.indexOf('flex') > -1) {
+      node.flex = {
+        direction: cs.flexDirection.indexOf('column') > -1 ? 'VERTICAL' : 'HORIZONTAL',
+        wrap: cs.flexWrap !== 'nowrap',
+        gap: parseFloat(cs.columnGap) || parseFloat(cs.gap) || 0,
+        rowGap: parseFloat(cs.rowGap) || parseFloat(cs.gap) || 0,
+        justify: cs.justifyContent,
+        align: cs.alignItems,
+        padding: {
+          top: parseFloat(cs.paddingTop) || 0,
+          right: parseFloat(cs.paddingRight) || 0,
+          bottom: parseFloat(cs.paddingBottom) || 0,
+          left: parseFloat(cs.paddingLeft) || 0
+        }
+      };
+    }
+
+    // leaf image
+    if (tag === 'IMG') {
+      var src = el.currentSrc || el.src;
+      if (src) {
+        var idx = node.fills.length;
+        node.fills.push({ type: 'IMAGE', scaleMode: cs.objectFit === 'contain' ? 'FIT' : 'FILL' });
+        pendingImageWork.push(fetchImageAsBase64(src).then(function (data) {
+          if (data) node.fills[idx].base64 = data.base64;
+          else node.fills[idx]._drop = true;
+        }));
+      }
+      node.type = 'IMAGE';
+      return node;
+    }
+    if (tag === 'SVG') {
+      var svgIdx = node.fills.length;
+      node.fills.push({ type: 'IMAGE', scaleMode: 'FILL' });
+      pendingImageWork.push(rasterizeSvg(el, width, height).then(function (data) {
+        if (data) node.fills[svgIdx].base64 = data.base64;
+        else node.fills[svgIdx]._drop = true;
+      }));
+      node.type = 'IMAGE';
+      return node;
+    }
+
+    // input/textarea/select synthetic text
+    if (tag === 'INPUT' || tag === 'TEXTAREA') {
+      var val = el.value || el.getAttribute('placeholder') || '';
+      if (val) {
+        var st = styleForRun(el);
+        return finishTextLeaf(node, cs, { characters: val, runs: [{ start: 0, end: val.length, style: st }] });
+      }
+    }
+
+    // text leaf: no element children, or purely-inline element children
+    if (el.children.length === 0 || isPurelyInlineContent(el)) {
+      var collected = collectTextRuns(el);
+      if (collected) return finishTextLeaf(node, cs, collected);
+    }
+
+    node.type = 'FRAME';
+    var kids = [];
+    for (var i = 0; i < el.children.length; i++) {
+      var childEl = el.children[i];
+      childEl._signature = childSignature(childEl);
+      kids.push(childEl);
+    }
+    markRepeatGroups(kids);
+    kids.forEach(function (childEl) {
+      var childNode = buildNode(childEl, rootRect, false);
+      if (childNode) {
+        childNode.repeatGroup = childEl.repeatGroup || null;
+        node.children.push(childNode);
+      }
+    });
+
+    return node;
+  }
+
+  function waitForAssets(doc) {
+    var imgs = Array.prototype.slice.call(doc.images);
+    var promises = imgs.map(function (img) {
+      if (img.complete) return Promise.resolve();
+      return new Promise(function (resolve) {
+        img.addEventListener('load', resolve);
+        img.addEventListener('error', resolve);
+        setTimeout(resolve, 4000);
+      });
+    });
+    if (doc.fonts && doc.fonts.ready) promises.push(doc.fonts.ready.catch(function () {}));
+    return Promise.all(promises);
+  }
+
+  function stripScripts(doc) {
+    Array.prototype.slice.call(doc.querySelectorAll('script')).forEach(function (s) { s.remove(); });
+  }
+
+  var activeFrame = null;
+
+  function convert(htmlSource, viewportWidth, useAutoLayout, groupRepeats) {
+    pendingImageWork = [];
+    log('Rendering HTML at ' + viewportWidth + 'px...', 'log-info');
+
+    if (activeFrame) { activeFrame.remove(); activeFrame = null; }
+    var frame = document.createElement('iframe');
+    frame.style.position = 'fixed';
+    frame.style.left = '-99999px';
+    frame.style.top = '0';
+    frame.style.width = viewportWidth + 'px';
+    frame.style.height = '1200px';
+    frame.style.border = '0';
+    document.body.appendChild(frame);
+    activeFrame = frame;
+
+    var isFullDoc = /<html[\s>]/i.test(htmlSource);
+    var srcdoc = isFullDoc ? htmlSource : ('<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>' + htmlSource + '</body></html>');
+
+    return new Promise(function (resolve, reject) {
+      frame.onload = function () {
+        try {
+          var doc = frame.contentDocument;
+          stripScripts(doc);
+          // force reflow after script removal
+          void doc.body.offsetHeight;
+          waitForAssets(doc).then(function () {
+            try {
+              // expand iframe to full content height so nothing clips
+              var full = doc.documentElement.scrollHeight;
+              frame.style.height = full + 'px';
+              void doc.body.offsetHeight;
+
+              var rootEl = doc.body.children.length === 1 ? doc.body.children[0] : doc.body;
+              var rootRect = rootEl.getBoundingClientRect();
+              log('Walking DOM tree...', 'log-info');
+              var tree = buildNode(rootEl, rootRect, true);
+              if (!tree) { reject(new Error('Nothing visible to convert')); return; }
+              log('Fetching ' + pendingImageWork.length + ' image(s)...', 'log-info');
+              Promise.all(pendingImageWork).then(function () {
+                resolve({
+                  tree: tree,
+                  meta: {
+                    title: doc.title || 'HTML Import',
+                    viewportWidth: viewportWidth,
+                    useAutoLayout: useAutoLayout,
+                    groupRepeats: groupRepeats
+                  }
+                });
+              });
+            } catch (e) { reject(e); }
+          });
+        } catch (e) { reject(e); }
+      };
+      frame.srcdoc = srcdoc;
+    });
+  }
+
+  convertBtn.addEventListener('click', function () {
+    var html = htmlInput.value.trim();
+    if (!html) { log('Paste some HTML first.', 'log-error'); return; }
+    convertBtn.disabled = true;
+    statusEl.innerHTML = '';
+    var vw = parseInt(viewportSelect.value, 10);
+    var useAutoLayout = autolayoutToggle.checked;
+    var groupRepeats = groupToggle.checked;
+
+    convert(html, vw, useAutoLayout, groupRepeats).then(function (result) {
+      log('Sending scene graph to Figma (' + countNodes(result.tree) + ' nodes)...', 'log-info');
+      parent.postMessage({ pluginMessage: { type: 'scene-graph', root: result.tree, meta: result.meta } }, '*');
+    }).catch(function (err) {
+      log('Error: ' + err.message, 'log-error');
+      convertBtn.disabled = false;
+    });
+  });
+
+  function countNodes(node) {
+    var n = 1;
+    (node.children || []).forEach(function (c) { n += countNodes(c); });
+    return n;
+  }
+
+  window.onmessage = function (e) {
+    var msg = e.data.pluginMessage;
+    if (!msg) return;
+    if (msg.type === 'done') {
+      log('Created ' + msg.count + ' Figma nodes.', 'log-ok');
+      convertBtn.disabled = false;
+    } else if (msg.type === 'error') {
+      log('Figma error: ' + msg.message, 'log-error');
+      convertBtn.disabled = false;
+    } else if (msg.type === 'log') {
+      log(msg.message, 'log-info');
+    }
+  };
+
+  var SAMPLE_HTML = '<div style="width:360px;font-family:Arial,sans-serif;background:#f5f6fa;padding:24px;border-radius:16px;">' +
+    '<div style="display:flex;align-items:center;gap:12px;">' +
+    '<div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#ec4899);"></div>' +
+    '<div><div style="font-weight:700;font-size:16px;color:#111827;">Ada Lovelace</div>' +
+    '<div style="font-size:12px;color:#6b7280;">Product Designer</div></div></div>' +
+    '<p style="font-size:13px;line-height:1.5;color:#374151;margin:16px 0;">Designing tools that turn <strong>ideas</strong> into ' +
+    '<em>working software</em>, one component at a time.</p>' +
+    '<div style="display:flex;flex-direction:column;gap:8px;">' +
+    '<div style="background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:10px 12px;box-shadow:0 1px 2px rgba(0,0,0,0.06);">Design systems</div>' +
+    '<div style="background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:10px 12px;box-shadow:0 1px 2px rgba(0,0,0,0.06);">Prototyping</div>' +
+    '<div style="background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:10px 12px;box-shadow:0 1px 2px rgba(0,0,0,0.06);">Front-end craft</div>' +
+    '</div>' +
+    '<button style="margin-top:16px;background:#111827;color:#fff;border:none;border-radius:8px;padding:10px 18px;font-size:13px;font-weight:600;">View portfolio</button>' +
+    '</div>';
+})();
+</script>
+</body>
+</html>
