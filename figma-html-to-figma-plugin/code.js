@@ -235,8 +235,14 @@ async function applyCommon(node, data) {
   applyCorner(node, data.corner);
   applyStrokes(node, data.strokes);
   applyEffects(node, data.effects);
-  var paints = buildPaints(data.fills, imageCache);
-  if ('fills' in node) node.fills = paints.length ? paints : [];
+  // Text color is already applied per character-range in buildTextNode via
+  // setRangeFills; overwriting node.fills here would reset every character to
+  // an empty paint (invisible text), since a plain text element's own
+  // data.fills is normally empty (no background-color on the element itself).
+  if (node.type !== 'TEXT') {
+    var paints = buildPaints(data.fills, imageCache);
+    if ('fills' in node) node.fills = paints.length ? paints : [];
+  }
 }
 
 async function buildTextNode(data, parentAbsX, parentAbsY) {
@@ -383,6 +389,12 @@ function wrapInSection(parentFigmaNode, groupNodes, count) {
   } catch (e) { /* sections unsupported in this Figma version — skip silently */ }
 }
 
+function countDataNodes(data) {
+  var n = 1;
+  (data.children || []).forEach(function (c) { n += countDataNodes(c); });
+  return n;
+}
+
 // ---- entry point ----
 
 figma.ui.onmessage = async function (msg) {
@@ -396,24 +408,24 @@ figma.ui.onmessage = async function (msg) {
     imageCache = {};
 
     log('Building Figma nodes...');
-    var rootFrame = figma.createFrame();
-    rootFrame.name = meta.title || 'HTML Import';
-    rootFrame.resize(Math.max(root.width, 1), Math.max(root.height, 1));
-    rootFrame.x = figma.viewport.center.x - root.width / 2;
-    rootFrame.y = figma.viewport.center.y - root.height / 2;
-    await applyCommon(rootFrame, root);
-    if (!root.fills || !root.fills.length) rootFrame.fills = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }];
-    figma.currentPage.appendChild(rootFrame);
+    // A plain white canvas frame that just holds the converted result — the
+    // actual root element is built generically via buildNode() below so that
+    // a root which turns out to be TEXT or IMAGE (e.g. a bare text fragment
+    // with no wrapping element) is handled correctly instead of being dropped.
+    var pageFrame = figma.createFrame();
+    pageFrame.name = meta.title || 'HTML Import';
+    pageFrame.resize(Math.max(root.width, 1), Math.max(root.height, 1));
+    pageFrame.x = figma.viewport.center.x - root.width / 2;
+    pageFrame.y = figma.viewport.center.y - root.height / 2;
+    pageFrame.fills = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }];
+    figma.currentPage.appendChild(pageFrame);
 
-    var count = 1 + (await buildChildren(rootFrame, root.children, root.x, root.y, meta) || 0);
+    var rootNode = await buildNode(root, root.x, root.y, meta);
+    if (rootNode) pageFrame.appendChild(rootNode);
 
-    if (meta.useAutoLayout && root.flex) {
-      try { configureAutoLayout(rootFrame, root.flex); } catch (e) {}
-    }
-
-    figma.currentPage.selection = [rootFrame];
-    figma.viewport.scrollAndZoomIntoView([rootFrame]);
-    figma.ui.postMessage({ type: 'done', count: count });
+    figma.currentPage.selection = [pageFrame];
+    figma.viewport.scrollAndZoomIntoView([pageFrame]);
+    figma.ui.postMessage({ type: 'done', count: countDataNodes(root) + 1 });
   } catch (e) {
     figma.ui.postMessage({ type: 'error', message: e.message || String(e) });
   }
