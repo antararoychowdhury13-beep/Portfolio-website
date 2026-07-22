@@ -80,7 +80,9 @@ No build step, no dependencies — `code.js` and `ui.html` are plain JS/HTML.
 - Effects: `box-shadow` (multiple, inset or drop) → Figma drop/inner shadow.
 - Text: mixed inline styling within one paragraph (`<strong>`, `<em>`, links,
   spans) via Figma's text range APIs, `text-align`, `text-transform`,
-  underline/strikethrough, letter-spacing, line-height.
+  underline/strikethrough, letter-spacing, line-height, and `white-space:
+  pre/pre-wrap/pre-line` (so `<pre>`/code blocks keep their line breaks and
+  indentation).
 - Images: `<img>`, CSS `background-image`, and inline `<svg>` (rasterized).
 - A leaf element that's *also* a styled box — a button, chip, or text input —
   is emitted as a Frame (holding the background/border/radius) with the label
@@ -109,9 +111,10 @@ why — check it first. Common causes, roughly in order of likelihood:
    browser DevTools → Elements panel → right-click the `<html>` node → Copy →
    Copy outerHTML, which captures the DOM *after* the browser applied styles
    and JS — more reliable than raw view-source for JS-heavy sites).
-3. **Content only added by JavaScript.** `<script>` tags are intentionally
-   removed before layout is captured (running arbitrary third-party JS inside
-   the plugin isn't safe, and it isn't needed for a static visual snapshot).
+3. **Content only added by JavaScript.** The render iframe is sandboxed with
+   script execution disabled (running arbitrary third-party JS inside the
+   plugin isn't safe, and it isn't needed for a static visual snapshot), and
+   `<script>` tags are stripped as a second layer.
    If a component only renders after a script runs (infinite scroll, a
    React/Vue app mounting into an empty `<div id="root">`, content revealed by
    an IntersectionObserver other than the lazy-image case above), paste the

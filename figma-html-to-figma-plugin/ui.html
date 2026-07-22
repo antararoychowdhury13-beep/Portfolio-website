@@ -363,7 +363,15 @@
     function visit(node, styleEl) {
       if (node.nodeType === 3) {
         var raw = node.textContent;
-        var collapsed = raw.replace(/\s+/g, ' ');
+        var ws = getComputedStyle(styleEl).whiteSpace;
+        var collapsed;
+        if (ws === 'pre' || ws === 'pre-wrap' || ws === 'break-spaces') {
+          collapsed = raw; // preserve newlines and indentation (<pre>, code blocks)
+        } else if (ws === 'pre-line') {
+          collapsed = raw.replace(/[^\S\n]+/g, ' '); // collapse spaces, keep newlines
+        } else {
+          collapsed = raw.replace(/\s+/g, ' ');
+        }
         if (collapsed === '' ) return;
         var start = chars.length;
         var st = styleForRun(styleEl);
@@ -709,6 +717,13 @@
 
     if (activeFrame) { activeFrame.remove(); activeFrame = null; }
     var frame = document.createElement('iframe');
+    // allow-same-origin WITHOUT allow-scripts: inline scripts in pasted HTML
+    // would otherwise execute during parsing — before stripScripts() ever runs
+    // in onload — letting hostile markup wipe the document or script against
+    // the plugin UI (the srcdoc iframe is same-origin with it). The sandbox
+    // blocks execution at the platform level; stripScripts() stays as
+    // belt-and-braces. Images and stylesheets still load normally.
+    frame.setAttribute('sandbox', 'allow-same-origin');
     frame.style.position = 'fixed';
     frame.style.left = '-99999px';
     frame.style.top = '0';
