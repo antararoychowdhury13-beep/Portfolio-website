@@ -72,6 +72,10 @@
     <textarea id="html-input" placeholder="&lt;div class=&quot;card&quot;&gt;...&lt;/div&gt;"></textarea>
     <div id="dropzone">or drop a .html file here / click to choose one</div>
     <input type="file" id="file-input" accept=".html,.htm" style="display:none" />
+    <label class="opt" style="display:flex;flex-direction:column;align-items:stretch;gap:4px;margin-top:8px;">
+      Source URL <span class="hint" style="margin:0;">(optional — set this if the page uses relative image/CSS paths like <code>/assets/logo.png</code>, so they can resolve)</span>
+      <input type="text" id="base-url-input" placeholder="https://example.com/page" style="font-size:11px;padding:6px 8px;border-radius:4px;border:1px solid #d9d9d9;" />
+    </label>
     <div class="row">
       <label class="opt">Freeze layout at
         <select id="viewport-select">
@@ -277,6 +281,7 @@
     }).then(function (buf) {
       return { base64: arrayBufferToBase64(buf) };
     }).catch(function (err) {
+      droppedImageCount++;
       log('  ! image fetch failed (' + url.slice(0, 60) + '): ' + err.message, 'log-error');
       return null;
     });
@@ -429,6 +434,7 @@
   // ---------- main walk ----------
 
   var pendingImageWork = [];
+  var droppedImageCount = 0;
 
   // A leaf text element (button, badge, chip, text input, ...) may also carry
   // background/border/radius/shadow. Figma text nodes can't render those, so
@@ -654,10 +660,51 @@
     Array.prototype.slice.call(doc.querySelectorAll('script')).forEach(function (s) { s.remove(); });
   }
 
+  // Scripts are removed before we read layout, so a JS-driven lazy-load
+  // library never runs and never swaps its placeholder src for the real
+  // image — the most common reason real-world pages come through with
+  // blank/missing images. Resolve the common attribute patterns ourselves
+  // and force eager loading so every image actually fetches.
+  var LAZY_SRC_ATTRS = ['data-src', 'data-lazy-src', 'data-original', 'data-lazy', 'data-echo'];
+  var LAZY_BG_ATTRS = ['data-bg', 'data-background', 'data-background-image', 'data-bg-image'];
+
+  function resolveLazyAssets(doc) {
+    var resolved = 0;
+    Array.prototype.slice.call(doc.querySelectorAll('img')).forEach(function (img) {
+      img.loading = 'eager';
+      var srcsetAttr = img.getAttribute('data-srcset');
+      if (srcsetAttr) { img.srcset = srcsetAttr; resolved++; }
+      for (var i = 0; i < LAZY_SRC_ATTRS.length; i++) {
+        var val = img.getAttribute(LAZY_SRC_ATTRS[i]);
+        if (val) { img.src = val; resolved++; break; }
+      }
+    });
+    Array.prototype.slice.call(doc.querySelectorAll('source[data-srcset]')).forEach(function (s) {
+      s.srcset = s.getAttribute('data-srcset'); resolved++;
+    });
+    var bgSelector = LAZY_BG_ATTRS.map(function (a) { return '[' + a + ']'; }).join(',');
+    Array.prototype.slice.call(doc.querySelectorAll(bgSelector)).forEach(function (el) {
+      for (var i = 0; i < LAZY_BG_ATTRS.length; i++) {
+        var val = el.getAttribute(LAZY_BG_ATTRS[i]);
+        if (val) { el.style.backgroundImage = 'url(' + val + ')'; resolved++; break; }
+      }
+    });
+    return resolved;
+  }
+
+  function injectBaseHref(html, baseUrl) {
+    if (!baseUrl) return html;
+    var baseTag = '<base href="' + baseUrl.replace(/"/g, '&quot;') + '">';
+    if (/<head[^>]*>/i.test(html)) return html.replace(/<head[^>]*>/i, function (m) { return m + baseTag; });
+    if (/<html[^>]*>/i.test(html)) return html.replace(/<html[^>]*>/i, function (m) { return m + '<head>' + baseTag + '</head>'; });
+    return baseTag + html;
+  }
+
   var activeFrame = null;
 
-  function convert(htmlSource, viewportWidth, useAutoLayout, groupRepeats) {
+  function convert(htmlSource, viewportWidth, useAutoLayout, groupRepeats, baseUrl) {
     pendingImageWork = [];
+    droppedImageCount = 0;
     log('Rendering HTML at ' + viewportWidth + 'px...', 'log-info');
 
     if (activeFrame) { activeFrame.remove(); activeFrame = null; }
@@ -673,16 +720,24 @@
 
     var isFullDoc = /<html[\s>]/i.test(htmlSource);
     var srcdoc = isFullDoc ? htmlSource : ('<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>' + htmlSource + '</body></html>');
+    srcdoc = injectBaseHref(srcdoc, baseUrl);
 
     return new Promise(function (resolve, reject) {
+      var linkFailures = 0;
       frame.onload = function () {
         try {
           var doc = frame.contentDocument;
+          Array.prototype.slice.call(doc.querySelectorAll('link[rel="stylesheet"]')).forEach(function (link) {
+            link.addEventListener('error', function () { linkFailures++; });
+          });
+          var lazyResolved = resolveLazyAssets(doc);
           stripScripts(doc);
           // force reflow after script removal
           void doc.body.offsetHeight;
           waitForAssets(doc).then(function () {
             try {
+              if (lazyResolved) log('Resolved ' + lazyResolved + ' lazy-loaded asset attribute(s).', 'log-info');
+              if (linkFailures) log('! ' + linkFailures + ' external stylesheet(s) failed to load — set the Source URL field if paths are relative.', 'log-error');
               // expand iframe to full content height so nothing clips
               var full = doc.documentElement.scrollHeight;
               frame.style.height = full + 'px';
@@ -695,6 +750,7 @@
               if (!tree) { reject(new Error('Nothing visible to convert')); return; }
               log('Fetching ' + pendingImageWork.length + ' image(s)...', 'log-info');
               Promise.all(pendingImageWork).then(function () {
+                if (droppedImageCount) log('! ' + droppedImageCount + ' image(s) could not be fetched and were skipped.', 'log-error');
                 resolve({
                   tree: tree,
                   meta: {
@@ -721,8 +777,9 @@
     var vw = parseInt(viewportSelect.value, 10);
     var useAutoLayout = autolayoutToggle.checked;
     var groupRepeats = groupToggle.checked;
+    var baseUrl = document.getElementById('base-url-input').value.trim();
 
-    convert(html, vw, useAutoLayout, groupRepeats).then(function (result) {
+    convert(html, vw, useAutoLayout, groupRepeats, baseUrl).then(function (result) {
       log('Sending scene graph to Figma (' + countNodes(result.tree) + ' nodes)...', 'log-info');
       parent.postMessage({ pluginMessage: { type: 'scene-graph', root: result.tree, meta: result.meta } }, '*');
     }).catch(function (err) {

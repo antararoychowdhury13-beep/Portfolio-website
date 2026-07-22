@@ -85,6 +85,46 @@ No build step, no dependencies — `code.js` and `ui.html` are plain JS/HTML.
 - A leaf element that's *also* a styled box — a button, chip, or text input —
   is emitted as a Frame (holding the background/border/radius) with the label
   nested inside as its own Text child, rather than dropping the box styling.
+- Common lazy-load patterns: since `<script>` tags are stripped before layout
+  is read (see below), a JS-driven lazy-loader never gets to swap its
+  placeholder image for the real one — so images sitting behind
+  `data-src`/`data-lazy-src`/`data-original`/`data-srcset` (or a `data-bg`-style
+  attribute for background images) are resolved directly and `loading="lazy"`
+  is forced to eager, before capture.
+
+## Troubleshooting "some content is missing"
+
+The status log at the bottom of the plugin now surfaces what got dropped and
+why — check it first. Common causes, roughly in order of likelihood:
+
+1. **Relative image/CSS paths.** If you pasted a page's raw source (e.g. from
+   "View Page Source") it often references assets as `/assets/logo.png` or
+   `styles.css` rather than a full URL. Those resolve against Figma's own
+   plugin UI origin, not the real site, and silently fail. Fill in the
+   **Source URL** field with the page's real URL — it's injected as a
+   `<base href>`, so relative paths resolve correctly.
+2. **External stylesheets failing to load** — the log will say so explicitly
+   (`! N external stylesheet(s) failed to load`). Usually fixed by #1, or by
+   pasting the fully-rendered/computed HTML instead of the raw source (e.g.
+   browser DevTools → Elements panel → right-click the `<html>` node → Copy →
+   Copy outerHTML, which captures the DOM *after* the browser applied styles
+   and JS — more reliable than raw view-source for JS-heavy sites).
+3. **Content only added by JavaScript.** `<script>` tags are intentionally
+   removed before layout is captured (running arbitrary third-party JS inside
+   the plugin isn't safe, and it isn't needed for a static visual snapshot).
+   If a component only renders after a script runs (infinite scroll, a
+   React/Vue app mounting into an empty `<div id="root">`, content revealed by
+   an IntersectionObserver other than the lazy-image case above), paste the
+   *rendered* DOM (Copy outerHTML as above) rather than the original source.
+4. **Content hidden at the frozen viewport width.** If a `<style>`/media query
+   sets `display:none` at the width you picked in "Freeze layout at", that
+   content is legitimately not visible at that breakpoint and is skipped —
+   try a different preset.
+5. **`<iframe>` embeds** (maps, videos, third-party widgets) render as an
+   empty frame — their content lives in a separate, cross-origin document
+   this plugin can't read into.
+6. **Web components / Shadow DOM.** Elements that render their content inside
+   a `shadowRoot` aren't currently traversed.
 
 ## Known limitations
 
