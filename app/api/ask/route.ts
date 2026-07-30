@@ -3,7 +3,7 @@
 // Set OPENAI_API_KEY for the primary, GROQ_API_KEY for the fallback — either or both.
 // EDIT SYSTEM PROMPT / EVIDENCE in the SYSTEM constant below.
 
-export const runtime = "edge";
+// Runs on Cloudflare Workers' default (Node-compat) runtime via OpenNext.
 
 const OPENAI_URL = "https://api.openai.com/v1/chat/completions";
 const OPENAI_MODEL = "gpt-4o-mini";          // cheap + fast; swap to "gpt-4.1-mini" or "gpt-4o" if you want.

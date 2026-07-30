@@ -1,8 +1,0 @@
-# Cloudflare Pages configuration
-name = "portfolio-website"
-pages_build_output_dir = ".vercel/output/static"
-compatibility_date = "2026-07-01"
-
-# nodejs_compat lets edge functions use Node's built-in modules
-# (needed by the Anthropic SDK's tools/agent-toolset submodules).
-compatibility_flags = ["nodejs_compat"]

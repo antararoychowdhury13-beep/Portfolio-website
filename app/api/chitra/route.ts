@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { CHITRA_SYSTEM_PROMPT } from "@/lib/chitra-prompt";
 
-export const runtime = "edge";
+// Runs on Cloudflare Workers' default (Node-compat) runtime via OpenNext.
 
 const CHAT_MODEL = "claude-haiku-4-5";
 const ANALYSIS_MODEL = "claude-sonnet-4-6";

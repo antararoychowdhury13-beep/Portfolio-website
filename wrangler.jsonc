@@ -1,0 +1,18 @@
+{
+  // Cloudflare Workers configuration for the Next.js portfolio, deployed
+  // via @opennextjs/cloudflare (Cloudflare's recommended Next.js adapter
+  // as of 2025+). "name" MUST match the Cloudflare project name so any
+  // self-references OpenNext creates resolve correctly.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "portfolio-website",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-07-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "observability": {
+    "enabled": true
+  }
+}
