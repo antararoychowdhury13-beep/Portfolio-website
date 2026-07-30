@@ -1,8 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { CHITRA_SYSTEM_PROMPT } from "@/lib/chitra-prompt";
 
-export const runtime = "nodejs";
-export const maxDuration = 60;
+export const runtime = "edge";
 
 const CHAT_MODEL = "claude-haiku-4-5";
 const ANALYSIS_MODEL = "claude-sonnet-4-6";
