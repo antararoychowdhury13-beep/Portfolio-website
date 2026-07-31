@@ -18,27 +18,22 @@ npm run preview      # Build and preview in the Cloudflare Workers runtime (work
 
 ## Deploying to Cloudflare
 
-### One-time setup
+This repo is connected to **Cloudflare Workers Builds** (Git integration), so Cloudflare
+builds and deploys the worker `portfolio-website` automatically on push. In the Cloudflare
+dashboard build settings, use:
 
-1. Create a Cloudflare API token with the **Edit Cloudflare Workers** template at
-   https://dash.cloudflare.com/profile/api-tokens
-2. Find your Account ID on the Cloudflare dashboard (Workers & Pages → right sidebar).
-3. For automatic deploys from GitHub, add both as repository secrets
-   (Settings → Secrets and variables → Actions):
-   - `CLOUDFLARE_API_TOKEN`
-   - `CLOUDFLARE_ACCOUNT_ID`
-4. The Chitra API route needs an Anthropic key on the deployed Worker:
-   ```bash
-   npx wrangler secret put ANTHROPIC_API_KEY
-   ```
+- Build command: `npx opennextjs-cloudflare build`
+- Deploy command: `npx opennextjs-cloudflare deploy`
 
-### Deploy
+The Chitra chat API route needs an Anthropic key on the deployed Worker (one time):
 
-- **Automatic:** every push to `main` deploys via `.github/workflows/deploy-cloudflare.yml`.
-- **Manual:**
-  ```bash
-  CLOUDFLARE_API_TOKEN=... CLOUDFLARE_ACCOUNT_ID=... npm run deploy
-  ```
+```bash
+npx wrangler secret put ANTHROPIC_API_KEY
+```
 
-The Worker is named `anupam-portfolio` (see `wrangler.jsonc`) and serves at
-`https://anupam-portfolio.<your-subdomain>.workers.dev` until you attach a custom domain.
+Manual deploys also work from a machine that's logged in to Cloudflare (`npx wrangler login`
+or `CLOUDFLARE_API_TOKEN`/`CLOUDFLARE_ACCOUNT_ID` env vars):
+
+```bash
+npm run deploy
+```
