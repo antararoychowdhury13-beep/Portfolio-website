@@ -4,6 +4,14 @@ const nextConfig = {
   experimental: {
     optimizePackageImports: [],
   },
+  async rewrites() {
+    return [
+      {
+        source: "/agentic",
+        destination: "/agentic/index.html",
+      },
+    ];
+  },
 };
 
 export default nextConfig;
