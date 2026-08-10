@@ -1,0 +1,13 @@
+{
+  "name": "HTML to Figma",
+  "id": "html-to-figma-converter",
+  "api": "1.0.0",
+  "main": "code.js",
+  "ui": "ui.html",
+  "editorType": ["figma"],
+  "documentAccess": "dynamic-page",
+  "networkAccess": {
+    "allowedDomains": ["*"],
+    "reasoning": "Fetches images referenced by <img> tags and CSS background-image so imported designs render with real pixel data instead of placeholders."
+  }
+}
